@@ -16,7 +16,7 @@ class VariableSHBandsGaussianModel(GaussianModel):
         features_dc = self._features_dc
         # compute SH according to self._degrees
         n_SH = (self._degrees + 1) ** 2 - 1
-        indices = torch.arange(n_SH.max(), device=n_SH.device).repeat(n_SH.shape[0], 1) < n_SH.unsqueeze(-1)
+        indices = torch.arange(n_SH.max(), device=n_SH.device).expand(n_SH.shape[0], -1) < n_SH.unsqueeze(-1)
         features_rest = torch.zeros_like(self._features_rest)
         features_rest[indices, :] = self._features_rest[indices, :]
         return torch.cat((features_dc, features_rest), dim=1)
