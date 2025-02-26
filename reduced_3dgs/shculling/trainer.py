@@ -104,7 +104,7 @@ class SHCuller(TrainerWrapper):
         return ret
 
 
-def SHCullingTrainer(
+def BaseSHCullingTrainer(
     model: VariableSHBandsGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,

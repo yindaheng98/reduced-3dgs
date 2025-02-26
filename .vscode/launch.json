@@ -16,7 +16,7 @@
                 "-i",
                 "30000",
                 "--mode",
-                "shculling",
+                "densify-shculling",
             ]
         },
     ]

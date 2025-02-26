@@ -8,32 +8,44 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, colmap_init
-from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer, IncrementalSHTrainer
-from gaussian_splatting.train import IncrementalSHTrainerWrapper
-from reduced_3dgs.shculling import VariableSHBandsGaussianModel, SHCullingTrainer
+from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer, BaseDensificationTrainer
+from reduced_3dgs.shculling import VariableSHBandsGaussianModel, SHCuller, BaseSHCullingTrainer
+
+
+def DensifySHCullingTrainer(
+    model: VariableSHBandsGaussianModel,
+        scene_extent: float,
+        dataset: CameraDataset,
+        cdist_threshold: float = 6,
+        std_threshold: float = 0.04,
+        cull_at_steps=[15000],
+        *args, **kwargs):
+    return SHCuller(
+        BaseDensificationTrainer(model, scene_extent, *args, **kwargs),
+        dataset,
+        cdist_threshold=cdist_threshold,
+        std_threshold=std_threshold,
+        cull_at_steps=cull_at_steps,
+    )
 
 
 def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
     match mode:
-        case "pure":
-            gaussians = GaussianModel(sh_degree).to(device)
-            gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-            dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
-            trainer = BaseTrainer(
-                gaussians,
-                spatial_lr_scale=dataset.scene_extent(),
-                **configs
-            ) if load_ply else IncrementalSHTrainerWrapper(
-                BaseTrainer,
-                gaussians,
-                spatial_lr_scale=dataset.scene_extent(),
-                **configs
-            )
         case "shculling":
             gaussians = VariableSHBandsGaussianModel(sh_degree).to(device)
             gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
             dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
-            trainer = SHCullingTrainer(
+            trainer = BaseSHCullingTrainer(
+                gaussians,
+                scene_extent=dataset.scene_extent(),
+                dataset=dataset,
+                **configs
+            )
+        case "densify-shculling":
+            gaussians = VariableSHBandsGaussianModel(sh_degree).to(device)
+            gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
+            dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
+            trainer = DensifySHCullingTrainer(
                 gaussians,
                 scene_extent=dataset.scene_extent(),
                 dataset=dataset,
@@ -89,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iteration", default=30000, type=int)
     parser.add_argument("-l", "--load_ply", default=None, type=str)
     parser.add_argument("--load_camera", default=None, type=str)
-    parser.add_argument("--mode", choices=["pure", "shculling"], default="pure")
+    parser.add_argument("--mode", choices=["shculling", "densify-shculling"], default="pure")
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7000, 30000])
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("-o", "--option", default=[], action='append', type=str)
