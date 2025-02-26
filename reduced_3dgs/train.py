@@ -8,8 +8,9 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, colmap_init
-from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer, BaseDensificationTrainer
-from reduced_3dgs.shculling import VariableSHBandsGaussianModel
+from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer, IncrementalSHTrainer
+from gaussian_splatting.train import IncrementalSHTrainerWrapper
+from reduced_3dgs.shculling import VariableSHBandsGaussianModel, SHCullingTrainer
 
 
 def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
@@ -22,21 +23,24 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
                 gaussians,
                 spatial_lr_scale=dataset.scene_extent(),
                 **configs
+            ) if load_ply else IncrementalSHTrainerWrapper(
+                BaseTrainer,
+                gaussians,
+                spatial_lr_scale=dataset.scene_extent(),
+                **configs
             )
         case "shculling":
             gaussians = VariableSHBandsGaussianModel(sh_degree).to(device)
             gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
             dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
-            trainer = BaseDensificationTrainer(
+            trainer = SHCullingTrainer(
                 gaussians,
                 scene_extent=dataset.scene_extent(),
-                **configs,
-                device=device
+                dataset=dataset,
+                **configs
             )
         case _:
             raise ValueError(f"Unknown mode: {mode}")
-    if load_ply:
-        gaussians.activate_all_sh_degree()
     return dataset, gaussians, trainer
 
 
