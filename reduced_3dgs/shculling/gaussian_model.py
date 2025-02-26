@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from gaussian_splatting import GaussianModel
 
 
@@ -35,3 +36,43 @@ class VariableSHBandsGaussianModel(GaussianModel):
     def load_ply(self, *args, **kwargs):
         super().load_ply(*args, **kwargs)
         self.init_degrees()
+
+    def update_points_add(
+            self,
+            xyz: nn.Parameter,
+            features_dc: nn.Parameter,
+            features_rest: nn.Parameter,
+            scaling: nn.Parameter,
+            rotation: nn.Parameter,
+            opacity: nn.Parameter,
+    ):
+        super().update_points_add(
+            xyz=xyz,
+            features_dc=features_dc,
+            features_rest=features_rest,
+            scaling=scaling,
+            rotation=rotation,
+            opacity=opacity,
+        )
+        with torch.no_grad():
+            self._degrees = torch.cat((self._degrees, torch.zeros(xyz.shape[0]-self._degrees.shape[0], dtype=self._degrees.dtype, device=xyz.device) + self.max_sh_degree))
+
+    def update_points_remove(
+            self, removed_mask: torch.Tensor,
+            xyz: nn.Parameter,
+            features_dc: nn.Parameter,
+            features_rest: nn.Parameter,
+            scaling: nn.Parameter,
+            rotation: nn.Parameter,
+            opacity: nn.Parameter,):
+        super().update_points_remove(
+            removed_mask=removed_mask,
+            xyz=xyz,
+            features_dc=features_dc,
+            features_rest=features_rest,
+            scaling=scaling,
+            rotation=rotation,
+            opacity=opacity,
+        )
+        with torch.no_grad():
+            self._degrees = self._degrees[~removed_mask]
