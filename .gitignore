@@ -1,6 +1,5 @@
-*.pyc
+data
 output
-build
 tensorboard_3d
 screenshots
 csv/
