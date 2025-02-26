@@ -13,3 +13,6 @@ eval/
 paper_images/
 i3d_submission_stuff/
 blender_scripts/
+*.egg-info
+*.dist-info
+reduced_3dgs/diff_gaussian_rasterization
