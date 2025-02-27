@@ -22,17 +22,22 @@ rasterizor_sources = [
     "cuda_rasterizer/forward.cu",
     "cuda_rasterizer/backward.cu",
     "rasterize_points.cu",
-    
-	"reduced_3dgs/redundancy_score.cu",
-	"reduced_3dgs/sh_culling.cu",
-	"reduced_3dgs/kmeans.cu",
-	"reduced_3dgs.cu",
- 
-    "ext.cpp"]
 
+    "reduced_3dgs/redundancy_score.cu",
+    "reduced_3dgs/sh_culling.cu",
+    "reduced_3dgs/kmeans.cu",
+    "reduced_3dgs.cu",
+
+    "ext.cpp"]
+simpleknn_root = "submodules/simple-knn"
+simpleknn_sources = [
+    "spatial.cu",
+    "simple_knn.cu",
+    "ext.cpp"]
 packages = ['reduced_3dgs'] + ["reduced_3dgs." + package for package in find_packages(where="reduced_3dgs")]
 rasterizor_packages = {
     'reduced_3dgs.diff_gaussian_rasterization': 'submodules/diff-gaussian-rasterization/diff_gaussian_rasterization',
+    'reduced_3dgs.simple_knn': 'submodules/simple-knn/simple_knn',
 }
 
 cxx_compiler_flags = []
@@ -64,6 +69,11 @@ setup(
             name="reduced_3dgs.diff_gaussian_rasterization._C",
             sources=[os.path.join(rasterizor_root, source) for source in rasterizor_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(rasterizor_root), "third_party/glm/")]}
+        ),
+        CUDAExtension(
+            name="reduced_3dgs.simple_knn._C",
+            sources=[os.path.join(simpleknn_root, source) for source in simpleknn_sources],
+            extra_compile_args={"nvcc": nvcc_compiler_flags, "cxx": cxx_compiler_flags}
         )
     ],
     cmdclass={

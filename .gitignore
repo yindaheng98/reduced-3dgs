@@ -10,6 +10,7 @@ i3d_submission_stuff/
 blender_scripts/
 
 /reduced_3dgs/diff_gaussian_rasterization
+/reduced_3dgs/simple_knn
 /gaussian_splatting
 
 *.dist-info
