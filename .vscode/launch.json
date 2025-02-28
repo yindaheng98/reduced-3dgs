@@ -12,7 +12,7 @@
                 "-s",
                 "data/truck",
                 "-d",
-                "output/truck",
+                "output/truck-reduced",
                 "-i",
                 "30000",
                 "--mode",
