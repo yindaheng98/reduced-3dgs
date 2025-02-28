@@ -1,7 +1,7 @@
 from typing import List
 import torch
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationParams, DensificationTrainer
+from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationInstruct, DensificationTrainer
 from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_intersection, allocate_minimum_redundancy_value, find_minimum_projected_pixel_size
 from reduced_3dgs.simple_knn._C import distIndex2
 
@@ -66,27 +66,52 @@ def mercy_points(self: GaussianModel, _splatted_num_accum: torch.Tensor, lambda_
     return mask
 
 
+def mercy_gaussians(
+    model: GaussianModel,
+    dataset: List[Camera],
+    box_size=1.,
+    lambda_mercy=1.,
+    mercy_minimum=3,
+    mercy_type='redundancy_opacity'
+):
+    _splatted_num_accum, _ = calculate_redundancy_metric(model, dataset, pixel_scale=box_size)
+    mask = mercy_points(model, _splatted_num_accum.squeeze(), lambda_mercy, mercy_minimum, mercy_type)
+    return mask
+
+
 class BasePruner(AbstractDensifier):
-    def __init__(self, model: GaussianModel, box_size, lambda_mercy, mercy_minimum, mercy_type):
+    def __init__(
+            self, model: GaussianModel, dataset: List[Camera],
+            prune_from_iter=1000,
+            prune_until_iter=15000,
+            prune_interval: int = 100,
+            box_size=1.,
+            lambda_mercy=1.,
+            mercy_minimum=3,
+            mercy_type='redundancy_opacity'):
         self.model = model
+        self.dataset = dataset
+        self.prune_from_iter = prune_from_iter
+        self.prune_until_iter = prune_until_iter
+        self.prune_interval = prune_interval
         self.box_size = box_size
         self.lambda_mercy = lambda_mercy
         self.mercy_minimum = mercy_minimum
         self.mercy_type = mercy_type
 
-    def update_densification_stats(self, out):
-        pass
-
-    def densify_and_prune(self) -> DensificationParams:
-        _splatted_num_accum, _ = calculate_redundancy_metric(pixel_scale=self.box_size)
-        _splatted_num_accum = _splatted_num_accum.unsqueeze(1)
-        mask = mercy_points(self.model, _splatted_num_accum, self.lambda_mercy, self.mercy_minimum, self.mercy_type)
-        return DensificationParams(mask=mask)
+    def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
+        if self.prune_from_iter < step < self.prune_until_iter and step % self.prune_interval == 0:
+            return DensificationInstruct(mask=mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type))
+        return DensificationInstruct()
 
 
 def BasePruningTrainer(
         model: GaussianModel,
         scene_extent: float,
+        dataset: List[Camera],
+        prune_from_iter=1000,
+        prune_until_iter=15000,
+        prune_interval: int = 100,
         box_size=1.,
         lambda_mercy=1.,
         mercy_minimum=3,
@@ -94,33 +119,56 @@ def BasePruningTrainer(
         *args, **kwargs):
     return DensificationTrainer(
         model, scene_extent,
-        BasePruner(model, box_size, lambda_mercy, mercy_minimum, mercy_type),
-        *args, **kwargs
+        BasePruner(
+            model, dataset,
+            prune_from_iter, prune_until_iter, prune_interval,
+            box_size, lambda_mercy, mercy_minimum, mercy_type
+        ), *args, **kwargs
     )
 
 
 class PrunerInDensify(Densifier):
-    def __init__(self, model: GaussianModel, scene_extent, dataset: List[Camera], box_size, lambda_mercy, mercy_minimum, mercy_type, *args, **kwargs):
+    def __init__(
+            self, model: GaussianModel, scene_extent, dataset: List[Camera],
+            mercy_from_iter=3000,
+            mercy_until_iter=20000,
+            mercy_interval: int = 100,
+            box_size=1.,
+            lambda_mercy=1.,
+            mercy_minimum=3,
+            mercy_type='redundancy_opacity',
+            *args, **kwargs):
         super().__init__(model, scene_extent, *args, **kwargs)
         self.dataset = dataset
+        self.mercy_from_iter = mercy_from_iter
+        self.mercy_until_iter = mercy_until_iter
+        self.mercy_interval = mercy_interval
         self.box_size = box_size
         self.lambda_mercy = lambda_mercy
         self.mercy_minimum = mercy_minimum
         self.mercy_type = mercy_type
+        self.mercy_from_iter = mercy_from_iter
 
-    def densify_and_prune(self) -> DensificationParams:
-        params = super().densify_and_prune()
-        if self.update_counter > self.prune_from_iter:
+    def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
+        instruct = super().densify_and_prune(loss, out, camera, step)
+        if self.mercy_from_iter <= step < self.mercy_until_iter and step % self.mercy_interval == 0:
             _splatted_num_accum, _ = calculate_redundancy_metric(self.model, self.dataset, pixel_scale=self.box_size)
             mask = mercy_points(self.model, _splatted_num_accum.squeeze(), self.lambda_mercy, self.mercy_minimum, self.mercy_type)
-            params = params._replace(remove_mask=mask if params.remove_mask is None else torch.logical_or(params.remove_mask, mask))
-        return params
+            instruct = instruct._replace(remove_mask=mask if instruct.remove_mask is None else torch.logical_or(instruct.remove_mask, mask))
+            self.xyz_gradient_accum = None
+            self.denom = None
+            self.max_radii2D = None
+            torch.cuda.empty_cache()
+        return instruct
 
 
 def PrunerInDensifyTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
+        mercy_from_iter=3000,
+        mercy_until_iter=20000,
+        mercy_interval: int = 100,
         box_size=1.,
         lambda_mercy=1.,
         mercy_minimum=3,
@@ -130,9 +178,7 @@ def PrunerInDensifyTrainer(
         model, scene_extent,
         PrunerInDensify(
             model, scene_extent, dataset,
-            box_size=box_size,
-            lambda_mercy=lambda_mercy,
-            mercy_minimum=mercy_minimum,
-            mercy_type=mercy_type
+            mercy_from_iter, mercy_until_iter, mercy_interval,
+            box_size, lambda_mercy, mercy_minimum, mercy_type
         ), *args, **kwargs
     )
