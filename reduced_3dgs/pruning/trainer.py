@@ -1,7 +1,7 @@
 from typing import List
 import torch
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationInstruct, DensificationTrainer
+from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationInstruct, DensificationTrainer, OpacityResetTrainer
 from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_intersection, allocate_minimum_redundancy_value, find_minimum_projected_pixel_size
 from reduced_3dgs.simple_knn._C import distIndex2
 
@@ -173,12 +173,17 @@ def PrunerInDensifyTrainer(
         lambda_mercy=1.,
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
+        opacity_reset_interval=3000,
         *args, **kwargs):
-    return DensificationTrainer(
-        model, scene_extent,
-        PrunerInDensify(
-            model, scene_extent, dataset,
-            mercy_from_iter, mercy_until_iter, mercy_interval,
-            box_size, lambda_mercy, mercy_minimum, mercy_type
-        ), *args, **kwargs
+    return OpacityResetTrainer(
+        DensificationTrainer(
+            model, scene_extent,
+            PrunerInDensify(
+                model, scene_extent, dataset,
+                mercy_from_iter, mercy_until_iter, mercy_interval,
+                box_size, lambda_mercy, mercy_minimum, mercy_type
+            ), *args, **kwargs
+        ),
+        opacity_reset_until_iter=mercy_until_iter,
+        opacity_reset_interval=opacity_reset_interval
     )
