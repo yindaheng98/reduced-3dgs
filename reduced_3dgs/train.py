@@ -10,7 +10,7 @@ from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, colmap_init
 from gaussian_splatting.trainer import AbstractTrainer, BaseDensificationTrainer
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCuller, BaseSHCullingTrainer
-from reduced_3dgs.pruning import BasePruningTrainer, PrunerInDensifyTrainer
+from reduced_3dgs.pruning import BasePruningTrainer, BasePrunerInDensifyTrainer
 
 
 def SHCullingDensifyTrainer(
@@ -56,7 +56,7 @@ def SHCullingPruningDensifyTrainer(
         cull_at_steps=[15000],
         *args, **kwargs):
     return SHCuller(
-        PrunerInDensifyTrainer(model, scene_extent, dataset, *args, **kwargs),
+        BasePrunerInDensifyTrainer(model, scene_extent, dataset, *args, **kwargs),
         dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,
@@ -67,7 +67,7 @@ def SHCullingPruningDensifyTrainer(
 modes = {
     "shculling": BaseSHCullingTrainer,
     "pruning": BasePruningTrainer,
-    "densify-pruning": PrunerInDensifyTrainer,
+    "densify-pruning": BasePrunerInDensifyTrainer,
     "densify-shculling": SHCullingDensifyTrainer,
     "prune-shculling": SHCullingPruneTrainer,
     "densify-prune-shculling": SHCullingPruningDensifyTrainer,

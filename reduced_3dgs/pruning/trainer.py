@@ -1,7 +1,7 @@
 from typing import List
 import torch
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationInstruct, DensificationTrainer, OpacityResetTrainer
+from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationInstruct, DensificationTrainer
 from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_intersection, allocate_minimum_redundancy_value, find_minimum_projected_pixel_size
 from reduced_3dgs.simple_knn._C import distIndex2
 
@@ -162,9 +162,10 @@ class PrunerInDensify(Densifier):
         return instruct
 
 
-def PrunerInDensifyTrainer(
+def BasePrunerInDensifyTrainer(
         model: GaussianModel,
         scene_extent: float,
+
         dataset: List[Camera],
         mercy_from_iter=3000,
         mercy_until_iter=20000,
@@ -173,17 +174,29 @@ def PrunerInDensifyTrainer(
         lambda_mercy=1.,
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
-        opacity_reset_interval=3000,
+
+        percent_dense=0.01,
+
+        densify_from_iter=500,
+        densify_until_iter=15000,
+        densify_interval=100,
+        densify_grad_threshold=0.0002,
+        densify_opacity_threshold=0.005,
+
+        prune_from_iter=1000,
+        prune_until_iter=15000,
+        prune_interval=100,
+        prune_screensize_threshold=20,
+
         *args, **kwargs):
-    return OpacityResetTrainer(
-        DensificationTrainer(
-            model, scene_extent,
-            PrunerInDensify(
-                model, scene_extent, dataset,
-                mercy_from_iter, mercy_until_iter, mercy_interval,
-                box_size, lambda_mercy, mercy_minimum, mercy_type
-            ), *args, **kwargs
-        ),
-        opacity_reset_until_iter=mercy_until_iter,
-        opacity_reset_interval=opacity_reset_interval
+    return DensificationTrainer(
+        model, scene_extent,
+        PrunerInDensify(
+            model, scene_extent, dataset,
+            mercy_from_iter, mercy_until_iter, mercy_interval,
+            box_size, lambda_mercy, mercy_minimum, mercy_type,
+            percent_dense,
+            densify_from_iter, densify_until_iter, densify_interval, densify_grad_threshold, densify_opacity_threshold,
+            prune_from_iter, prune_until_iter, prune_interval, prune_screensize_threshold
+        ), *args, **kwargs
     )
