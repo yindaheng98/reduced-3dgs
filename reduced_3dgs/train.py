@@ -8,66 +8,16 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, colmap_init
-from gaussian_splatting.trainer import AbstractTrainer, BaseDensificationTrainer
-from reduced_3dgs.shculling import VariableSHGaussianModel, SHCuller, BaseSHCullingTrainer
-from reduced_3dgs.pruning import BasePruningTrainer, BasePrunerInDensifyTrainer
-
-
-def SHCullingDensifyTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
-        *args, **kwargs):
-    return SHCuller(
-        BaseDensificationTrainer(model, scene_extent, *args, **kwargs),
-        dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
-    )
-
-
-def SHCullingPruneTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
-        *args, **kwargs):
-    return SHCuller(
-        BasePruningTrainer(model, scene_extent, *args, **kwargs),
-        dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
-    )
-
-
-def SHCullingPruningDensifyTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
-        *args, **kwargs):
-    return SHCuller(
-        BasePrunerInDensifyTrainer(model, scene_extent, dataset, *args, **kwargs),
-        dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
-    )
+from gaussian_splatting.trainer import AbstractTrainer
+from reduced_3dgs.shculling import VariableSHGaussianModel, BaseSHCullingTrainer
+from reduced_3dgs.pruning import BasePruningTrainer
+from reduced_3dgs.combinations import OpacityResetPrunerInDensifyTrainer, SHCullingDensifyTrainer, SHCullingPruneTrainer, SHCullingPruningDensifyTrainer
 
 
 modes = {
     "shculling": BaseSHCullingTrainer,
     "pruning": BasePruningTrainer,
-    "densify-pruning": BasePrunerInDensifyTrainer,
+    "densify-pruning": OpacityResetPrunerInDensifyTrainer,
     "densify-shculling": SHCullingDensifyTrainer,
     "prune-shculling": SHCullingPruneTrainer,
     "densify-prune-shculling": SHCullingPruningDensifyTrainer,
