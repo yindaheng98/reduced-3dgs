@@ -3,7 +3,7 @@ import torch.nn as nn
 from gaussian_splatting import GaussianModel
 
 
-class VariableSHBandsGaussianModel(GaussianModel):
+class VariableSHGaussianModel(GaussianModel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._degrees = torch.empty(0)

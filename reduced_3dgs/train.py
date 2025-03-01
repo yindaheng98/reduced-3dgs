@@ -8,13 +8,13 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, colmap_init
-from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer, BaseDensificationTrainer
-from reduced_3dgs.shculling import VariableSHBandsGaussianModel, SHCuller, BaseSHCullingTrainer
+from gaussian_splatting.trainer import AbstractTrainer, BaseDensificationTrainer
+from reduced_3dgs.shculling import VariableSHGaussianModel, SHCuller, BaseSHCullingTrainer
 from reduced_3dgs.pruning import BasePruningTrainer, PrunerInDensifyTrainer
 
 
 def SHCullingDensifyTrainer(
-    model: VariableSHBandsGaussianModel,
+    model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
@@ -31,7 +31,7 @@ def SHCullingDensifyTrainer(
 
 
 def SHCullingPruneTrainer(
-    model: VariableSHBandsGaussianModel,
+    model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
@@ -48,7 +48,7 @@ def SHCullingPruneTrainer(
 
 
 def SHCullingPruningDensifyTrainer(
-    model: VariableSHBandsGaussianModel,
+    model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
@@ -75,7 +75,7 @@ modes = {
 
 
 def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
-    gaussians = VariableSHBandsGaussianModel(sh_degree).to(device)
+    gaussians = VariableSHGaussianModel(sh_degree).to(device)
     gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
     dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
     trainer = modes[mode](

@@ -6,10 +6,10 @@ from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, BaseTrai
 from gaussian_splatting.dataset import CameraDataset
 from reduced_3dgs.diff_gaussian_rasterization._C import calculate_colours_variance
 
-from .gaussian_model import VariableSHBandsGaussianModel
+from .gaussian_model import VariableSHGaussianModel
 
 
-def _low_variance_colour_culling(self: VariableSHBandsGaussianModel, threshold, weighted_variance: torch.Tensor, weighted_mean: torch.Tensor):
+def _low_variance_colour_culling(self: VariableSHGaussianModel, threshold, weighted_variance: torch.Tensor, weighted_mean: torch.Tensor):
     original_degrees = torch.zeros_like(self._degrees)
     original_degrees.copy_(self._degrees)
 
@@ -24,7 +24,7 @@ def _low_variance_colour_culling(self: VariableSHBandsGaussianModel, threshold, 
     self._features_rest[std_mask] = 0
 
 
-def _low_distance_colour_culling(self: VariableSHBandsGaussianModel, threshold, colour_distances: torch.Tensor):
+def _low_distance_colour_culling(self: VariableSHGaussianModel, threshold, colour_distances: torch.Tensor):
     colour_distances[colour_distances.isnan()] = 0
 
     # Loop from active_sh_degree - 1 to 0, since the comparisons
@@ -42,7 +42,7 @@ def _low_distance_colour_culling(self: VariableSHBandsGaussianModel, threshold, 
         self._features_rest[mask, coeffs_num:] = 0
 
 
-def _cull_sh_bands(self: VariableSHBandsGaussianModel, cameras: List[Camera], threshold=0, std_threshold=0.):
+def _cull_sh_bands(self: VariableSHGaussianModel, cameras: List[Camera], threshold=0, std_threshold=0.):
     camera_positions = torch.stack([cam.camera_center for cam in cameras], dim=0)
     camera_viewmatrices = torch.stack([cam.world_view_transform for cam in cameras], dim=0)
     camera_projmatrices = torch.stack([cam.full_proj_transform for cam in cameras], dim=0)
@@ -77,7 +77,7 @@ def _cull_sh_bands(self: VariableSHBandsGaussianModel, cameras: List[Camera], th
     _low_distance_colour_culling(self, threshold, colour_distances)
 
 
-def cull_sh_bands(self: VariableSHBandsGaussianModel, cameras: List[Camera], threshold=0, std_threshold=0.):
+def cull_sh_bands(self: VariableSHGaussianModel, cameras: List[Camera], threshold=0, std_threshold=0.):
     with torch.no_grad():
         _cull_sh_bands(self, cameras, threshold, std_threshold)
 
@@ -91,7 +91,7 @@ class SHCuller(TrainerWrapper):
             cull_at_steps=[15000],
     ):
         super().__init__(base_trainer)
-        assert isinstance(self.model, VariableSHBandsGaussianModel)
+        assert isinstance(self.model, VariableSHGaussianModel)
         self.dataset = dataset
         self.cdist_threshold = cdist_threshold
         self.std_threshold = std_threshold
@@ -105,7 +105,7 @@ class SHCuller(TrainerWrapper):
 
 
 def BaseSHCullingTrainer(
-    model: VariableSHBandsGaussianModel,
+    model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
