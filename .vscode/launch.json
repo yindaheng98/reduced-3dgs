@@ -19,5 +19,23 @@
                 "densify-prune-shculling",
             ]
         },
+        {
+            "name": "train-camera",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "reduced_3dgs.train",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck-reduced-camera",
+                "-i",
+                "30000",
+                "--mode",
+                "camera-densify-prune-shculling",
+            ]
+        },
     ]
 }
