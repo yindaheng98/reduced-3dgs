@@ -1,10 +1,12 @@
 import abc
 
+import torch
+
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
 
 
-class AbstractVectorQuantizer(TrainerWrapper):
+class AbstractVectorQuantizer:
 
     @abc.abstractmethod
     def clustering(self, model: GaussianModel):
@@ -37,5 +39,6 @@ class VectorQuantizeWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
     def model(self) -> GaussianModel:
         model = self.base_trainer.model
         if self.quantizate_from_iter <= self.curr_step < self.quantizate_until_iter and self.curr_step % self.quantizate_interval == 0:
-            self.quantizer.clustering(model)
+            with torch.no_grad():
+                self.quantizer.clustering(model)
         return model

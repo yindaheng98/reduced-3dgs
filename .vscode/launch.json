@@ -37,5 +37,21 @@
                 "camera-densify-prune-shculling",
             ]
         },
+        {
+            "name": "quantize",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "reduced_3dgs.quantize",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "output/truck-reduced",
+                "-d",
+                "output/truck-quantized",
+                "-i",
+                "30000",
+            ]
+        },
     ]
 }
