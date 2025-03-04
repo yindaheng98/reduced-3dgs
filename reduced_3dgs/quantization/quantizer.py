@@ -51,12 +51,12 @@ def produce_clusters(self: GaussianModel, num_clusters: int):
 
 def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor], ids_dict: Dict[str, torch.Tensor]):
 
-    opacity = codebook_dict["opacity"][ids_dict[f"opacity"], ...]
-    scaling = codebook_dict["scaling"][ids_dict[f"scaling"], ...]
+    opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
+    scaling = codebook_dict["scaling"][ids_dict["scaling"], ...]
 
     rotation = torch.cat((
-        codebook_dict["rotation_re"][ids_dict[f"rotation_re"], ...],
-        codebook_dict["rotation_im"][ids_dict[f"rotation_im"], ...],
+        codebook_dict["rotation_re"][ids_dict["rotation_re"], ...],
+        codebook_dict["rotation_im"][ids_dict["rotation_im"], ...],
     ), dim=1)
 
     features_rest = []
@@ -64,7 +64,7 @@ def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor]
         features_rest.append(codebook_dict[f"features_rest_{sh_degree}"][ids_dict[f"features_rest_{sh_degree}"], ...])
     features_rest = torch.cat(features_rest, dim=2).transpose(1, 2)
 
-    features_dc = codebook_dict["features_dc"][ids_dict[f"features_dc"], ...]
+    features_dc = codebook_dict["features_dc"][ids_dict["features_dc"], ...]
 
     with torch.no_grad():
         self._opacity[...] = opacity
@@ -84,56 +84,66 @@ class VectorQuantizer(AbstractVectorQuantizer):
         return apply_clustering(model, codebook_dict, ids_dict)
 
     def save_clusters(self, model: GaussianModel, ply_path: str):
-        codebook_dict = produce_clusters(model, self.num_clusters)
-        opacity = codebook_dict["opacity"].ids
-        scaling = codebook_dict["scaling"].ids
-        rot = torch.cat((codebook_dict["rotation_re"].ids,
-                        codebook_dict["rotation_im"].ids),
-                        dim=1)
-        features_dc = codebook_dict["features_dc"].ids
-        features_rest = torch.cat([codebook_dict[f"features_rest_{i}"].ids
-                                   for i in range(model.max_sh_degree)
-                                   ], dim=1).squeeze()
+        codebook_dict, ids_dict = produce_clusters(model, self.num_clusters)
+        dtype_full = [
+            ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
+            ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
+            ('scale', 'u4'),
+            ('rot_re', 'u4'),
+            ('rot_im', 'u4'),
+            ('opacity', 'u4'),
+            ('f_dc', 'u4'),
+        ]
+        for sh_degree in range(model.max_sh_degree):
+            dtype_full.extend([
+                (f'f_rest_{sh_degree}_0', 'u4'),
+                (f'f_rest_{sh_degree}_1', 'u4'),
+                (f'f_rest_{sh_degree}_2', 'u4'),
+            ])
+        data_full = [
+            *np.array_split(model._xyz.detach().cpu().numpy(), 3, axis=1),
+            *np.array_split(torch.zeros_like(model._xyz).detach().cpu().numpy(), 3, axis=1),
+            ids_dict["scaling"].unsqueeze(-1).cpu().numpy(),
+            ids_dict["rotation_re"].unsqueeze(-1).cpu().numpy(),
+            ids_dict["rotation_im"].unsqueeze(-1).cpu().numpy(),
+            ids_dict["opacity"].unsqueeze(-1).cpu().numpy(),
+            ids_dict["features_dc"].cpu().numpy(),
+        ]
+        for sh_degree in range(model.max_sh_degree):
+            features_rest = ids_dict[f'features_rest_{sh_degree}'].cpu().numpy()
+            data_full.extend(np.array_split(features_rest, 3, axis=1))
 
-        dtype_full = [(k, 'f4') for k in codebook_dict.keys()]
-        codebooks = np.empty(self.num_clusters, dtype=dtype_full)
-
-        centers_numpy_list = [v.centers.detach().cpu().numpy() for v in codebook_dict.values()]
-
-        codebooks[:] = list(map(tuple, np.concatenate([ar for ar in centers_numpy_list], axis=1)))
-
-        xyz = model._xyz.detach().cpu().numpy()
-        normals = np.zeros_like(xyz)
-        f_dc = features_dc.cpu().numpy()
-        f_rest = features_rest.flatten(start_dim=1).cpu().numpy()
-        opacities = opacity.cpu().numpy()
-        scale = scaling.cpu().numpy()
-        rotation = rot.cpu().numpy()
-
-        dtype_full = [(attribute, 'f4') for attribute in ['x', 'y', 'z', 'nx', 'ny', 'nz']]
-
-        def construct_list_of_attributes(self: GaussianModel):
-            l = []
-            # All channels except the 3 DC
-            for i in range(self._features_dc.shape[1]*self._features_dc.shape[2]):
-                l.append('f_dc_{}'.format(i))
-            for i in range(self._features_rest.shape[1]*self._features_rest.shape[2]):
-                l.append('f_rest_{}'.format(i))
-            l.append('opacity')
-            for i in range(self._scaling.shape[1]):
-                l.append('scale_{}'.format(i))
-            for i in range(self._rotation.shape[1]):
-                l.append('rot_{}'.format(i))
-            return l
-
-        dtype_full += [(attribute, 'u4') for attribute in construct_list_of_attributes(model)]
-
-        elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz, normals, f_dc, f_rest, opacities, scale, rotation), axis=1)
-        elements[:] = list(map(tuple, attributes))
+        elements = np.rec.fromarrays([data.squeeze(-1) for data in data_full], dtype=dtype_full)
         el = PlyElement.describe(elements, 'vertex')
-        codebook_centers = PlyElement.describe(codebooks, 'codebook_centers')
-        PlyData([el, codebook_centers]).write(ply_path)
+
+        dtype_full = [
+            ("scaling_0", 'f4'), ("scaling_1", 'f4'), ("scaling_2", 'f4'),
+            ("rot_re", 'f4'), ("rot_im_0", 'f4'), ("rot_im_1", 'f4'), ("rot_im_2", 'f4'),
+            ("opacity", 'f4'),
+            ("f_dc_0", 'f4'), ("f_dc_1", 'f4'), ("f_dc_2", 'f4'),
+        ]
+        for sh_degree in range(model.max_sh_degree):
+            features_rest = codebook_dict[f'features_rest_{sh_degree}']
+            sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
+            dtype_full.extend([(f'f_rest_{sh_degree}_{ch}', 'f4') for ch in range(sh_idx_end - sh_idx_start)])
+        data_full = [
+            *np.array_split(codebook_dict["scaling"].cpu().numpy(), 3, axis=1),
+            codebook_dict["rotation_re"].cpu().numpy(),
+            *np.array_split(codebook_dict["rotation_im"].cpu().numpy(), 3, axis=1),
+            codebook_dict["opacity"].cpu().numpy(),
+            *np.array_split(codebook_dict["features_dc"].cpu().numpy(), 3, axis=1),
+        ]
+        for sh_degree in range(model.max_sh_degree):
+            features_rest = codebook_dict[f'features_rest_{sh_degree}'].cpu().numpy()
+            sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
+            data_full.extend(np.array_split(features_rest, sh_idx_end - sh_idx_start, axis=1))
+
+        codebook = np.rec.fromarrays([data.squeeze(-1) for data in data_full], dtype=dtype_full)
+        cb = PlyElement.describe(codebook, 'codebook')
+
+        PlyData([el, cb]).write(ply_path)
+
+        return apply_clustering(model, codebook_dict, ids_dict)
 
     def load_clusters(self, model: GaussianModel, ply_path: str):
         pass
