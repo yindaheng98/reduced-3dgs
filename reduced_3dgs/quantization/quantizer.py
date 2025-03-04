@@ -9,15 +9,6 @@ import numpy as np
 from .abc import AbstractVectorQuantizer
 
 
-class Codebook():
-    def __init__(self, ids, centers):
-        self.ids = ids
-        self.centers = centers
-
-    def evaluate(self):
-        return self.centers[self.ids.flatten().long()]
-
-
 def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_iter=500):
     kmeans = KMeans(
         n_clusters=num_clusters, tol=tol, max_iter=max_iter,
