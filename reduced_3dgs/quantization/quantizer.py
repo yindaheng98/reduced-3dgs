@@ -115,8 +115,8 @@ class VectorQuantizer(AbstractVectorQuantizer):
         ]
         for sh_degree in range(model.max_sh_degree):
             features_rest = codebook_dict[f'features_rest_{sh_degree}']
-            sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
-            dtype_full.extend([(f'f_rest_{sh_degree}_{ch}', 'f4') for ch in range(sh_idx_end - sh_idx_start)])
+            n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
+            dtype_full.extend([(f'f_rest_{sh_degree}_{ch}', 'f4') for ch in range(n_channels)])
         data_full = [
             *np.array_split(codebook_dict["scaling"].cpu().numpy(), 3, axis=1),
             codebook_dict["rotation_re"].cpu().numpy(),
@@ -126,8 +126,8 @@ class VectorQuantizer(AbstractVectorQuantizer):
         ]
         for sh_degree in range(model.max_sh_degree):
             features_rest = codebook_dict[f'features_rest_{sh_degree}'].cpu().numpy()
-            sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
-            data_full.extend(np.array_split(features_rest, sh_idx_end - sh_idx_start, axis=1))
+            n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
+            data_full.extend(np.array_split(features_rest, n_channels, axis=1))
 
         codebook = np.rec.fromarrays([data.squeeze(-1) for data in data_full], dtype=dtype_full)
         cb = PlyElement.describe(codebook, 'codebook')
@@ -137,4 +137,29 @@ class VectorQuantizer(AbstractVectorQuantizer):
         return apply_clustering(model, codebook_dict, ids_dict)
 
     def load_clusters(self, model: GaussianModel, ply_path: str):
-        pass
+        plydata = PlyData.read(ply_path)
+
+        ids_dict = {}
+        elements = plydata['vertex']
+        kwargs = dict(dtype=torch.long, device=model._xyz.device)
+        ids_dict["scaling"] = torch.tensor(elements["scale"], **kwargs)
+        ids_dict["rotation_re"] = torch.tensor(elements["rot_re"], **kwargs)
+        ids_dict["rotation_im"] = torch.tensor(elements["rot_im"], **kwargs)
+        ids_dict["opacity"] = torch.tensor(elements["opacity"], **kwargs)
+        ids_dict["features_dc"] = torch.tensor(elements["f_dc"], **kwargs).unsqueeze(-1)
+        for sh_degree in range(model.max_sh_degree):
+            ids_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([elements[f'f_rest_{sh_degree}_{ch}'] for ch in range(3)], axis=1), **kwargs)
+
+        codebook_dict = {}
+        codebook = plydata['codebook']
+        kwargs = dict(dtype=torch.float32, device=model._xyz.device)
+        codebook_dict["scaling"] = torch.tensor(np.stack([codebook[f'scaling_{ch}'] for ch in range(3)], axis=1), **kwargs)
+        codebook_dict["rotation_re"] = torch.tensor(codebook["rot_re"], **kwargs).unsqueeze(-1)
+        codebook_dict["rotation_im"] = torch.tensor(np.stack([codebook[f'rot_im_{ch}'] for ch in range(3)], axis=1), **kwargs)
+        codebook_dict["opacity"] = torch.tensor(codebook["opacity"], **kwargs).unsqueeze(-1)
+        codebook_dict["features_dc"] = torch.tensor(np.stack([codebook[f'f_dc_{ch}'] for ch in range(3)], axis=1), **kwargs)
+        for sh_degree in range(model.max_sh_degree):
+            n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
+            codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([codebook[f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
+
+        return apply_clustering(model, codebook_dict, ids_dict)
