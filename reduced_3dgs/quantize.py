@@ -10,7 +10,8 @@ def quantize(source, destination, iteration, sh_degree, device, num_clusters, **
     gaussians = GaussianModel(sh_degree).to(device)
     gaussians.load_ply(input)
     quantizer = VectorQuantizer(num_clusters)
-    quantizer.save_clusters(gaussians, output)
+    quantizer.save_quantized(gaussians, output)
+    quantizer.load_quantized(gaussians, output)
 
 
 if __name__ == "__main__":

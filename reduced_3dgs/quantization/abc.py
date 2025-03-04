@@ -6,25 +6,25 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
 
 
-class AbstractVectorQuantizer:
+class AbstractQuantizer:
 
     @abc.abstractmethod
-    def clustering(self, model: GaussianModel):
+    def quantize(self, model: GaussianModel):
         pass
 
     @abc.abstractmethod
-    def save_clusters(self, model: GaussianModel, ply_path: str, codebook_path: str):
+    def save_quantized(self, model: GaussianModel, ply_path: str, codebook_path: str):
         pass
 
     @abc.abstractmethod
-    def load_clusters(self, model: GaussianModel, ply_path: str, codebook_path: str):
+    def load_quantized(self, model: GaussianModel, ply_path: str, codebook_path: str):
         pass
 
 
-class VectorQuantizeWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
+class QuantizeTrainerWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
     def __init__(
             self, base_trainer: AbstractTrainer,
-            quantizer: AbstractVectorQuantizer,
+            quantizer: AbstractQuantizer,
             quantizate_from_iter=15000,
             quantizate_until_iter=30000,
             quantizate_interval=3000,
@@ -40,5 +40,5 @@ class VectorQuantizeWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
         model = self.base_trainer.model
         if self.quantizate_from_iter <= self.curr_step < self.quantizate_until_iter and self.curr_step % self.quantizate_interval == 0:
             with torch.no_grad():
-                self.quantizer.clustering(model)
+                self.quantizer.quantize(model)
         return model

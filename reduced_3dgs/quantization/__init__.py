@@ -1,2 +1,2 @@
-from .abc import AbstractVectorQuantizer, VectorQuantizeWrapper
+from .abc import AbstractQuantizer, QuantizeTrainerWrapper
 from .quantizer import VectorQuantizer

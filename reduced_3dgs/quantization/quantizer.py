@@ -6,7 +6,7 @@ from sklearn.cluster import MiniBatchKMeans as KMeans
 from gaussian_splatting import GaussianModel
 from plyfile import PlyData, PlyElement
 import numpy as np
-from .abc import AbstractVectorQuantizer
+from .abc import AbstractQuantizer
 
 
 def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_iter=500):
@@ -66,15 +66,15 @@ def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor]
     return self
 
 
-class VectorQuantizer(AbstractVectorQuantizer):
+class VectorQuantizer(AbstractQuantizer):
     def __init__(self, num_clusters=256):
         self.num_clusters = num_clusters
 
-    def clustering(self, model: GaussianModel):
+    def quantize(self, model: GaussianModel):
         codebook_dict, ids_dict = produce_clusters(model, self.num_clusters)
         return apply_clustering(model, codebook_dict, ids_dict)
 
-    def save_clusters(self, model: GaussianModel, ply_path: str):
+    def save_quantized(self, model: GaussianModel, ply_path: str):
         codebook_dict, ids_dict = produce_clusters(model, self.num_clusters)
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
@@ -136,7 +136,7 @@ class VectorQuantizer(AbstractVectorQuantizer):
 
         return apply_clustering(model, codebook_dict, ids_dict)
 
-    def load_clusters(self, model: GaussianModel, ply_path: str):
+    def load_quantized(self, model: GaussianModel, ply_path: str):
         plydata = PlyData.read(ply_path)
 
         ids_dict = {}
