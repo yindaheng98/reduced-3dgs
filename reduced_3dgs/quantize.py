@@ -5,13 +5,15 @@ from reduced_3dgs.quantization import VectorQuantizer
 
 def quantize(source, destination, iteration, sh_degree, device, num_clusters, **kwargs):
     input = os.path.join(source, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply")
-    output = os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply")
+    output = os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud_quantized.ply")
     os.makedirs(os.path.join(destination, "point_cloud", "iteration_" + str(iteration)), exist_ok=True)
     gaussians = GaussianModel(sh_degree).to(device)
     gaussians.load_ply(input)
-    quantizer = VectorQuantizer(num_clusters)
-    quantizer.save_quantized(gaussians, output)
-    quantizer.load_quantized(gaussians, output)
+    quantizer = VectorQuantizer(gaussians, num_clusters)
+    quantizer.save_quantized(output)
+    quantizer.load_quantized(output)
+    output = os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply")
+    gaussians.save_ply(output)
 
 
 if __name__ == "__main__":
