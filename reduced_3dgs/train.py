@@ -42,11 +42,26 @@ def prepare_quantizer(
         base_constructor,
         load_quantized: str = None,
         num_clusters=256,
+        num_clusters_rotation_re=None,
+        num_clusters_rotation_im=None,
+        num_clusters_opacity=None,
+        num_clusters_scaling=None,
+        num_clusters_features_dc=None,
+        num_clusters_features_rest=[],
         quantizate_from_iter=5000,
         quantizate_until_iter=30000,
         quantizate_interval=1000,
         **configs):
-    quantizer = VectorQuantizer(gaussians, num_clusters=num_clusters)
+    quantizer = VectorQuantizer(
+        gaussians,
+        num_clusters=num_clusters,
+        num_clusters_rotation_re=num_clusters_rotation_re,
+        num_clusters_rotation_im=num_clusters_rotation_im,
+        num_clusters_opacity=num_clusters_opacity,
+        num_clusters_scaling=num_clusters_scaling,
+        num_clusters_features_dc=num_clusters_features_dc,
+        num_clusters_features_rest=num_clusters_features_rest,
+    )
     if load_quantized:
         quantizer.load_quantized(load_quantized)
     return QuantizeTrainerWrapper(
