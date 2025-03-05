@@ -92,6 +92,22 @@ def array2record(array: torch.Tensor, perfix, n_cols, dtype):
     return record
 
 
+def compute_uint_length(n):
+    count = 0
+    while n >> 1:
+        count += 1
+        n >>= 1
+    return count
+
+
+def compute_uint_dtype(n):
+    bits = compute_uint_length(n)
+    bytes = bits // 8
+    if bits % 8:
+        bytes += 1
+    return f'u{bytes}'
+
+
 class VectorQuantizer(AbstractQuantizer):
     def __init__(
             self, model: GaussianModel,
@@ -102,6 +118,8 @@ class VectorQuantizer(AbstractQuantizer):
             num_clusters_scaling=None,
             num_clusters_features_dc=None,
             num_clusters_features_rest=[],
+            force_code_dtype=None,
+            force_codebook_dtype='f4',
     ):
         self._model = model
         self.num_clusters_rotation_re = num_clusters_rotation_re or num_clusters
@@ -110,6 +128,8 @@ class VectorQuantizer(AbstractQuantizer):
         self.num_clusters_scaling = num_clusters_scaling or num_clusters
         self.num_clusters_features_dc = num_clusters_features_dc or num_clusters
         self.num_clusters_features_rest = [(num_clusters_features_rest[i] if len(num_clusters_features_rest) > i else num_clusters) for i in range(model.max_sh_degree)]
+        self.force_code_dtype = force_code_dtype
+        self.force_codebook_dtype = force_codebook_dtype
         self._codebook_dict = {}
 
     @property
@@ -144,17 +164,18 @@ class VectorQuantizer(AbstractQuantizer):
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
-            ('rot_re', 'u4'),
-            ('rot_im', 'u4'),
-            ('opacity', 'u4'),
-            ('scale', 'u4'),
-            ('f_dc', 'u4'),
+            ('rot_re', self.force_code_dtype or compute_uint_dtype(self.num_clusters_rotation_re)),
+            ('rot_im', self.force_code_dtype or compute_uint_dtype(self.num_clusters_rotation_im)),
+            ('opacity', self.force_code_dtype or compute_uint_dtype(self.num_clusters_opacity)),
+            ('scale', self.force_code_dtype or compute_uint_dtype(self.num_clusters_scaling)),
+            ('f_dc', self.force_code_dtype or compute_uint_dtype(self.num_clusters_features_dc)),
         ]
         for sh_degree in range(model.max_sh_degree):
+            force_code_dtype = self.force_code_dtype or compute_uint_dtype(self.num_clusters_features_rest[sh_degree])
             dtype_full.extend([
-                (f'f_rest_{sh_degree}_0', 'u4'),
-                (f'f_rest_{sh_degree}_1', 'u4'),
-                (f'f_rest_{sh_degree}_2', 'u4'),
+                (f'f_rest_{sh_degree}_0', force_code_dtype),
+                (f'f_rest_{sh_degree}_1', force_code_dtype),
+                (f'f_rest_{sh_degree}_2', force_code_dtype),
             ])
         data_full = [
             *np.array_split(model._xyz.detach().cpu().numpy(), 3, axis=1),
@@ -173,16 +194,16 @@ class VectorQuantizer(AbstractQuantizer):
         el = PlyElement.describe(elements, 'vertex')
 
         cb = [
-            PlyElement.describe(array2record(codebook_dict["rotation_re"], "rot_re", 1, 'f4'), 'codebook_rot_re'),
-            PlyElement.describe(array2record(codebook_dict["rotation_im"], "rot_im", 3, 'f4'), 'codebook_rot_im'),
-            PlyElement.describe(array2record(codebook_dict["opacity"], "opacity", 1, 'f4'), 'codebook_opacity'),
-            PlyElement.describe(array2record(codebook_dict["scaling"], "scaling", 3, 'f4'), 'codebook_scaling'),
-            PlyElement.describe(array2record(codebook_dict["features_dc"], "f_dc", 3, 'f4'), 'codebook_f_dc'),
+            PlyElement.describe(array2record(codebook_dict["rotation_re"], "rot_re", 1, self.force_codebook_dtype), 'codebook_rot_re'),
+            PlyElement.describe(array2record(codebook_dict["rotation_im"], "rot_im", 3, self.force_codebook_dtype), 'codebook_rot_im'),
+            PlyElement.describe(array2record(codebook_dict["opacity"], "opacity", 1, self.force_codebook_dtype), 'codebook_opacity'),
+            PlyElement.describe(array2record(codebook_dict["scaling"], "scaling", 3, self.force_codebook_dtype), 'codebook_scaling'),
+            PlyElement.describe(array2record(codebook_dict["features_dc"], "f_dc", 3, self.force_codebook_dtype), 'codebook_f_dc'),
         ]
         for sh_degree in range(model.max_sh_degree):
             features_rest = codebook_dict[f'features_rest_{sh_degree}']
             n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
-            cb.append(PlyElement.describe(array2record(features_rest, f'f_rest_{sh_degree}', n_channels, 'f4'), f'codebook_f_rest_{sh_degree}'))
+            cb.append(PlyElement.describe(array2record(features_rest, f'f_rest_{sh_degree}', n_channels, self.force_codebook_dtype), f'codebook_f_rest_{sh_degree}'))
 
         PlyData([el, *cb]).write(ply_path)
 
@@ -195,11 +216,11 @@ class VectorQuantizer(AbstractQuantizer):
         ids_dict = {}
         elements = plydata['vertex']
         kwargs = dict(dtype=torch.long, device=model._xyz.device)
-        ids_dict["rotation_re"] = torch.tensor(elements["rot_re"], **kwargs)
-        ids_dict["rotation_im"] = torch.tensor(elements["rot_im"], **kwargs)
-        ids_dict["opacity"] = torch.tensor(elements["opacity"], **kwargs)
-        ids_dict["scaling"] = torch.tensor(elements["scale"], **kwargs)
-        ids_dict["features_dc"] = torch.tensor(elements["f_dc"], **kwargs).unsqueeze(-1)
+        ids_dict["rotation_re"] = torch.tensor(elements["rot_re"].copy(), **kwargs)
+        ids_dict["rotation_im"] = torch.tensor(elements["rot_im"].copy(), **kwargs)
+        ids_dict["opacity"] = torch.tensor(elements["opacity"].copy(), **kwargs)
+        ids_dict["scaling"] = torch.tensor(elements["scale"].copy(), **kwargs)
+        ids_dict["features_dc"] = torch.tensor(elements["f_dc"].copy(), **kwargs).unsqueeze(-1)
         for sh_degree in range(model.max_sh_degree):
             ids_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([elements[f'f_rest_{sh_degree}_{ch}'] for ch in range(3)], axis=1), **kwargs)
 
