@@ -10,10 +10,11 @@ from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
 from .abc import AbstractQuantizer, QuantizeTrainerWrapper
 
 
-def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_iter=500):
+def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_iter=500, init_codebook=None):
     kmeans = KMeans(
         n_clusters=num_clusters, tol=tol, max_iter=max_iter,
-        init='random', random_state=0, n_init="auto", verbose=1,
+        init='random' if init_codebook is None else init_codebook.cpu().numpy(),
+        random_state=0, n_init="auto", verbose=0,
         batch_size=256 * os.cpu_count()
     )
     ids = torch.tensor(kmeans.fit_predict(values.cpu().numpy()), device=values.device)
@@ -21,23 +22,34 @@ def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_it
     return centers, ids
 
 
-def produce_clusters(self: GaussianModel, num_clusters: int):
+def produce_clusters(self: GaussianModel, num_clusters: int, init_codebook_dict={}):
     codebook_dict: Dict[str, torch.Tensor] = {}
     ids_dict: Dict[str, torch.Tensor] = {}
 
-    codebook_dict["features_dc"], ids = generate_codebook(self._features_dc.detach().squeeze(1), num_clusters=num_clusters, tol=0.001)
+    init_codebook_dict = {
+        "features_dc": None,
+        "features_dc": None,
+        **{f"features_rest_{sh_degree}": None for sh_degree in range(self.max_sh_degree)},
+        "rotation_re": None,
+        "rotation_im": None,
+        "opacity": None,
+        "scaling": None,
+        **init_codebook_dict
+    }
+
+    codebook_dict["features_dc"], ids = generate_codebook(self._features_dc.detach().squeeze(1), num_clusters=num_clusters, tol=0.001, init_codebook=init_codebook_dict["features_dc"])
     ids_dict["features_dc"] = ids.unsqueeze(1)
     features_rest_flatten = self._features_rest.detach().transpose(1, 2).flatten(0, 1)
     for sh_degree in range(self.max_sh_degree):
         sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
-        codebook_dict[f"features_rest_{sh_degree}"], ids = generate_codebook(features_rest_flatten[:, sh_idx_start:sh_idx_end], num_clusters=num_clusters)
+        codebook_dict[f"features_rest_{sh_degree}"], ids = generate_codebook(features_rest_flatten[:, sh_idx_start:sh_idx_end], num_clusters=num_clusters, init_codebook=init_codebook_dict[f"features_rest_{sh_degree}"])
         ids_dict[f"features_rest_{sh_degree}"] = ids.reshape(-1, self._features_rest.shape[-1])
 
-    codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = generate_codebook(self.get_rotation.detach()[:, 0:1], num_clusters=num_clusters)
-    codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = generate_codebook(self.get_rotation.detach()[:, 1:], num_clusters=num_clusters)
+    codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = generate_codebook(self.get_rotation.detach()[:, 0:1], num_clusters=num_clusters, init_codebook=init_codebook_dict["rotation_re"])
+    codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = generate_codebook(self.get_rotation.detach()[:, 1:], num_clusters=num_clusters, init_codebook=init_codebook_dict["rotation_im"])
 
-    codebook_dict["opacity"], ids_dict[f"opacity"] = generate_codebook(self._opacity.detach(), num_clusters=num_clusters)
-    codebook_dict["scaling"], ids_dict[f"scaling"] = generate_codebook(self._scaling.detach(), num_clusters=num_clusters)
+    codebook_dict["opacity"], ids_dict[f"opacity"] = generate_codebook(self._opacity.detach(), num_clusters=num_clusters, init_codebook=init_codebook_dict["opacity"])
+    codebook_dict["scaling"], ids_dict[f"scaling"] = generate_codebook(self._scaling.detach(), num_clusters=num_clusters, init_codebook=init_codebook_dict["scaling"])
     return codebook_dict, ids_dict
 
 
@@ -68,15 +80,24 @@ def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor]
 
 
 class VectorQuantizer(AbstractQuantizer):
-    def __init__(self, num_clusters=256):
+    def __init__(self, model: GaussianModel, num_clusters=256):
+        self._model = model
         self.num_clusters = num_clusters
+        self._codebook_dict = {}
 
-    def quantize(self, model: GaussianModel):
-        codebook_dict, ids_dict = produce_clusters(model, self.num_clusters)
+    @property
+    def model(self) -> GaussianModel:
+        return self._model
+
+    def quantize(self) -> GaussianModel:
+        model = self.model
+        codebook_dict, ids_dict = produce_clusters(model, self.num_clusters, self._codebook_dict)
+        self._codebook_dict = codebook_dict
         return apply_clustering(model, codebook_dict, ids_dict)
 
-    def save_quantized(self, model: GaussianModel, ply_path: str):
-        codebook_dict, ids_dict = produce_clusters(model, self.num_clusters)
+    def save_quantized(self, ply_path: str):
+        model = self.model
+        codebook_dict, ids_dict = produce_clusters(model, self.num_clusters, self._codebook_dict)
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -137,7 +158,8 @@ class VectorQuantizer(AbstractQuantizer):
 
         return apply_clustering(model, codebook_dict, ids_dict)
 
-    def load_quantized(self, model: GaussianModel, ply_path: str):
+    def load_quantized(self, ply_path: str):
+        model = self.model
         plydata = PlyData.read(ply_path)
 
         ids_dict = {}
@@ -174,7 +196,7 @@ def VectorQuantizeTrainerWrapper(
         quantizate_interval=500,
 ):
     return QuantizeTrainerWrapper(
-        base_trainer, VectorQuantizer(num_clusters=num_clusters),
+        base_trainer, VectorQuantizer(base_trainer.model, num_clusters=num_clusters),
         quantizate_from_iter, quantizate_until_iter, quantizate_interval
     )
 
@@ -189,6 +211,6 @@ def VectorQuantizeTrainer(
         *args, **kwargs):
     return QuantizeTrainerWrapper(
         BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
-        VectorQuantizer(num_clusters=num_clusters),
+        VectorQuantizer(model, num_clusters=num_clusters),
         quantizate_from_iter, quantizate_until_iter, quantizate_interval
     )

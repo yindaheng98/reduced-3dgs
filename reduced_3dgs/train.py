@@ -46,9 +46,9 @@ def prepare_quantizer(
         quantizate_until_iter=30000,
         quantizate_interval=1000,
         **configs):
-    quantizer = VectorQuantizer(num_clusters=num_clusters)
+    quantizer = VectorQuantizer(gaussians, num_clusters=num_clusters)
     if load_quantized:
-        quantizer.load_quantized(gaussians, load_quantized)
+        quantizer.load_quantized(load_quantized)
     return QuantizeTrainerWrapper(
         base_constructor(
             gaussians,
@@ -138,13 +138,13 @@ def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: Abstract
             gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
             dataset.save_cameras(os.path.join(destination, "cameras.json"))
             if quantizer:
-                quantizer.save_quantized(gaussians, os.path.join(save_path, "point_cloud_quantized.ply"))
+                quantizer.save_quantized(os.path.join(save_path, "point_cloud_quantized.ply"))
     save_path = os.path.join(destination, "point_cloud", "iteration_" + str(iteration))
     os.makedirs(save_path, exist_ok=True)
     gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
     dataset.save_cameras(os.path.join(destination, "cameras.json"))
     if quantizer:
-        quantizer.save_quantized(gaussians, os.path.join(save_path, "point_cloud_quantized.ply"))
+        quantizer.save_quantized(os.path.join(save_path, "point_cloud_quantized.ply"))
 
 
 if __name__ == "__main__":
