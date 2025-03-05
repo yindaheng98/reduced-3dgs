@@ -1,8 +1,8 @@
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetter, CameraOptimizer
-from reduced_3dgs.shculling import VariableSHGaussianModel, SHCuller, BaseSHCullingTrainer
-from reduced_3dgs.pruning import BasePruningTrainer, BasePrunerInDensifyTrainer
+from .shculling import VariableSHGaussianModel, SHCuller, BaseSHCullingTrainer
+from .pruning import BasePruningTrainer, BasePrunerInDensifyTrainer
 
 
 def OpacityResetPrunerInDensifyTrainer(

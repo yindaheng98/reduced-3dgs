@@ -38,6 +38,25 @@
             ]
         },
         {
+            "name": "train-quantize",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "reduced_3dgs.train",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck-reduced",
+                "-i",
+                "30000",
+                "--mode",
+                "densify-prune-shculling",
+                "--quantize",
+            ]
+        },
+        {
             "name": "quantize",
             "type": "debugpy",
             "request": "launch",

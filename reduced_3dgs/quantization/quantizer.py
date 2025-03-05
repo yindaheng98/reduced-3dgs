@@ -6,7 +6,8 @@ from sklearn.cluster import MiniBatchKMeans as KMeans
 from gaussian_splatting import GaussianModel
 from plyfile import PlyData, PlyElement
 import numpy as np
-from .abc import AbstractQuantizer
+from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
+from .abc import AbstractQuantizer, QuantizeTrainerWrapper
 
 
 def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_iter=500):
@@ -163,3 +164,31 @@ class VectorQuantizer(AbstractQuantizer):
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([codebook[f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
         return apply_clustering(model, codebook_dict, ids_dict)
+
+
+def VectorQuantizeTrainerWrapper(
+        base_trainer: AbstractTrainer,
+        num_clusters=256,
+        quantizate_from_iter=5000,
+        quantizate_until_iter=30000,
+        quantizate_interval=500,
+):
+    return QuantizeTrainerWrapper(
+        base_trainer, VectorQuantizer(num_clusters=num_clusters),
+        quantizate_from_iter, quantizate_until_iter, quantizate_interval
+    )
+
+
+def VectorQuantizeTrainer(
+    model: GaussianModel,
+    spatial_lr_scale: float,
+        num_clusters=256,
+        quantizate_from_iter=5000,
+        quantizate_until_iter=30000,
+        quantizate_interval=1000,
+        *args, **kwargs):
+    return QuantizeTrainerWrapper(
+        BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
+        VectorQuantizer(num_clusters=num_clusters),
+        quantizate_from_iter, quantizate_until_iter, quantizate_interval
+    )

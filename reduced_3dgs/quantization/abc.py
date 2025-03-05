@@ -25,9 +25,9 @@ class QuantizeTrainerWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
     def __init__(
             self, base_trainer: AbstractTrainer,
             quantizer: AbstractQuantizer,
-            quantizate_from_iter=15000,
+            quantizate_from_iter=5000,
             quantizate_until_iter=30000,
-            quantizate_interval=3000,
+            quantizate_interval=1000,
     ):
         super().__init__(base_trainer)
         self.quantizer = quantizer
