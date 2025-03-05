@@ -54,6 +54,14 @@
                 "--mode",
                 "densify-prune-shculling",
                 "--quantize",
+                "-o",
+                "num_clusters_scaling=512",
+                "-o",
+                "num_clusters_rotation_im=512",
+                "-o",
+                "num_clusters_opacity=64",
+                "-o",
+                "num_clusters_features_dc=512",
             ]
         },
         {
