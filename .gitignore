@@ -1,13 +1,5 @@
 data
 output
-tensorboard_3d
-screenshots
-csv/
-*.ipynb
-eval/
-paper_images/
-i3d_submission_stuff/
-blender_scripts/
 
 /reduced_3dgs/diff_gaussian_rasterization
 /reduced_3dgs/simple_knn
