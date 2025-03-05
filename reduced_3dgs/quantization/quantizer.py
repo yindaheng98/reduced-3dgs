@@ -266,7 +266,7 @@ def VectorQuantizeTrainerWrapper(
     )
 
 
-def VectorQuantizeTrainer(
+def BaseVectorQuantizeTrainer(
     model: GaussianModel,
     spatial_lr_scale: float,
         num_clusters=256,

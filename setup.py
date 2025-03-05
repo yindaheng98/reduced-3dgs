@@ -49,7 +49,7 @@ if os.name == 'nt':
 
 setup(
     name="reduced_3dgs",
-    version='0.8',
+    version='1.0',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
     url='https://github.com/yindaheng98/reduced-3dgs',
@@ -82,5 +82,6 @@ setup(
     install_requires=[
         'tqdm',
         'plyfile',
+        'scikit-learn'
     ]
 )

@@ -9,7 +9,7 @@ from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset, Trainab
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, ColmapTrainableCameraDataset, colmap_init
 from gaussian_splatting.trainer import AbstractTrainer
-from reduced_3dgs.quantization import AbstractQuantizer, QuantizeTrainerWrapper, VectorQuantizer
+from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, BaseSHCullingTrainer
 from reduced_3dgs.pruning import BasePruningTrainer
 from reduced_3dgs.combinations import OpacityResetPrunerInDensifyTrainer, SHCullingDensifyTrainer, SHCullingPruneTrainer, SHCullingPruningDensifyTrainer
@@ -41,6 +41,7 @@ def prepare_quantizer(
         dataset: CameraDataset,
         base_constructor,
         load_quantized: str = None,
+
         num_clusters=256,
         num_clusters_rotation_re=None,
         num_clusters_rotation_im=None,
@@ -48,12 +49,19 @@ def prepare_quantizer(
         num_clusters_scaling=None,
         num_clusters_features_dc=None,
         num_clusters_features_rest=[],
+
         quantizate_from_iter=5000,
         quantizate_until_iter=30000,
         quantizate_interval=1000,
         **configs):
-    quantizer = VectorQuantizer(
-        gaussians,
+    trainer = VectorQuantizeTrainerWrapper(
+        base_constructor(
+            gaussians,
+            scene_extent=scene_extent,
+            dataset=dataset,
+            **configs
+        ),
+
         num_clusters=num_clusters,
         num_clusters_rotation_re=num_clusters_rotation_re,
         num_clusters_rotation_im=num_clusters_rotation_im,
@@ -61,18 +69,14 @@ def prepare_quantizer(
         num_clusters_scaling=num_clusters_scaling,
         num_clusters_features_dc=num_clusters_features_dc,
         num_clusters_features_rest=num_clusters_features_rest,
+
+        quantizate_from_iter=quantizate_from_iter,
+        quantizate_until_iter=quantizate_until_iter,
+        quantizate_interval=quantizate_interval,
     )
     if load_quantized:
-        quantizer.load_quantized(load_quantized)
-    return QuantizeTrainerWrapper(
-        base_constructor(
-            gaussians,
-            scene_extent=scene_extent,
-            dataset=dataset,
-            **configs
-        ), quantizer,
-        quantizate_from_iter, quantizate_until_iter, quantizate_interval
-    ), quantizer
+        trainer.quantizer.load_quantized(load_quantized)
+    return trainer, trainer.quantizer
 
 
 def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
