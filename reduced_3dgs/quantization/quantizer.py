@@ -136,9 +136,41 @@ class VectorQuantizer(AbstractQuantizer):
     def model(self) -> GaussianModel:
         return self._model
 
+    @staticmethod
+    def produce_clusters(
+            self: GaussianModel,
+            num_clusters_rotation_re: int,
+            num_clusters_rotation_im: int,
+            num_clusters_opacity: int,
+            num_clusters_scaling: int,
+            num_clusters_features_dc: int,
+            num_clusters_features_rest: List[int],
+            init_codebook_dict={}):
+        return produce_clusters(
+            self=self,
+            num_clusters_rotation_re=num_clusters_rotation_re,
+            num_clusters_rotation_im=num_clusters_rotation_im,
+            num_clusters_opacity=num_clusters_opacity,
+            num_clusters_scaling=num_clusters_scaling,
+            num_clusters_features_dc=num_clusters_features_dc,
+            num_clusters_features_rest=num_clusters_features_rest,
+            init_codebook_dict=init_codebook_dict
+        )
+
+    @staticmethod
+    def apply_clustering(
+            self: GaussianModel,
+            codebook_dict: Dict[str, torch.Tensor],
+            ids_dict: Dict[str, torch.Tensor]):
+        return apply_clustering(
+            self=self,
+            codebook_dict=codebook_dict,
+            ids_dict=ids_dict
+        )
+
     def quantize(self) -> GaussianModel:
         model = self.model
-        codebook_dict, ids_dict = produce_clusters(
+        codebook_dict, ids_dict = self.produce_clusters(
             model,
             self.num_clusters_rotation_re,
             self.num_clusters_rotation_im,
@@ -148,11 +180,11 @@ class VectorQuantizer(AbstractQuantizer):
             self.num_clusters_features_rest,
             self._codebook_dict)
         self._codebook_dict = codebook_dict
-        return apply_clustering(model, codebook_dict, ids_dict)
+        return self.apply_clustering(model, codebook_dict, ids_dict)
 
     def save_quantized(self, ply_path: str):
         model = self.model
-        codebook_dict, ids_dict = produce_clusters(
+        codebook_dict, ids_dict = self.produce_clusters(
             model,
             self.num_clusters_rotation_re,
             self.num_clusters_rotation_im,
@@ -207,7 +239,7 @@ class VectorQuantizer(AbstractQuantizer):
 
         PlyData([el, *cb]).write(ply_path)
 
-        return apply_clustering(model, codebook_dict, ids_dict)
+        return self.apply_clustering(model, codebook_dict, ids_dict)
 
     def load_quantized(self, ply_path: str):
         model = self.model
