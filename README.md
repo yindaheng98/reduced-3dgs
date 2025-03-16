@@ -41,7 +41,7 @@ pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@
 ```shell
 git clone --recursive https://github.com/yindaheng98/reduced-3dgs
 cd reduced-3dgs
-pip install tqdm plyfile scikit-learn
+pip install tqdm plyfile scikit-learn numpy
 pip install --target . --upgrade --no-deps .
 ```
 
