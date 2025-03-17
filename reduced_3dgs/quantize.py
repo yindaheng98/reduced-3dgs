@@ -1,7 +1,7 @@
 import os
 import shutil
 from gaussian_splatting import GaussianModel
-from reduced_3dgs.quantization import ExcludeZeroSHQuantizer as VectorQuantizer
+from reduced_3dgs.quantization import ExcludeZeroQuantizer as VectorQuantizer
 
 
 def copy_not_exists(source, destination):
