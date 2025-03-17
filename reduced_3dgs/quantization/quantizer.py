@@ -6,8 +6,7 @@ from sklearn.cluster import MiniBatchKMeans as KMeans
 from gaussian_splatting import GaussianModel
 from plyfile import PlyData, PlyElement
 import numpy as np
-from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
-from .abc import AbstractQuantizer, QuantizeTrainerWrapper
+from .abc import AbstractQuantizer
 
 
 def generate_codebook(values: torch.Tensor, num_clusters=256, tol=1e-6, max_iter=500, init_codebook=None):
@@ -263,97 +262,3 @@ class VectorQuantizer(AbstractQuantizer):
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
         return apply_clustering(model, codebook_dict, ids_dict)
-
-
-class ExcludeZeroSHQuantizer(VectorQuantizer):
-
-    def exclude_zero_feature_rest(self, codebook_dict, ids_dict):
-        for sh_degree in range(self.model.max_sh_degree):
-            codebook, ids = codebook_dict[f'features_rest_{sh_degree}'], ids_dict[f'features_rest_{sh_degree}']
-            if codebook.abs().max() < 1e-6:  # invalid codebook
-                codebook = torch.zeros_like(codebook[:1])
-                ids[...] = 0
-            codebook_dict[f'features_rest_{sh_degree}'], ids_dict[f'features_rest_{sh_degree}'] = codebook, ids
-        return codebook_dict, ids_dict
-
-    def produce_clusters(
-            self,
-            num_clusters_rotation_re: int,
-            num_clusters_rotation_im: int,
-            num_clusters_opacity: int,
-            num_clusters_scaling: int,
-            num_clusters_features_dc: int,
-            num_clusters_features_rest: List[int],
-            init_codebook_dict={}):
-        for sh_degree in range(self.model.max_sh_degree):
-            if f"features_rest_{sh_degree}" in init_codebook_dict and init_codebook_dict[f"features_rest_{sh_degree}"].abs().max() < 1e-6:
-                init_codebook_dict[f"features_rest_{sh_degree}"] = None  # invalid codebook
-        codebook_dict, ids_dict = super().produce_clusters(
-            num_clusters_rotation_re=num_clusters_rotation_re,
-            num_clusters_rotation_im=num_clusters_rotation_im,
-            num_clusters_opacity=num_clusters_opacity,
-            num_clusters_scaling=num_clusters_scaling,
-            num_clusters_features_dc=num_clusters_features_dc,
-            num_clusters_features_rest=num_clusters_features_rest,
-            init_codebook_dict=init_codebook_dict
-        )
-        codebook_dict, ids_dict = self.exclude_zero_feature_rest(codebook_dict, ids_dict)
-        return codebook_dict, ids_dict
-
-
-def VectorQuantizeTrainerWrapper(
-    base_trainer: AbstractTrainer,
-        num_clusters=256,
-        num_clusters_rotation_re=None,
-        num_clusters_rotation_im=None,
-        num_clusters_opacity=None,
-        num_clusters_scaling=None,
-        num_clusters_features_dc=None,
-        num_clusters_features_rest=[],
-        quantizate_from_iter=5000,
-        quantizate_until_iter=30000,
-        quantizate_interval=500,
-):
-    return QuantizeTrainerWrapper(
-        base_trainer, ExcludeZeroSHQuantizer(
-            base_trainer.model,
-            num_clusters=num_clusters,
-            num_clusters_rotation_re=num_clusters_rotation_re,
-            num_clusters_rotation_im=num_clusters_rotation_im,
-            num_clusters_opacity=num_clusters_opacity,
-            num_clusters_scaling=num_clusters_scaling,
-            num_clusters_features_dc=num_clusters_features_dc,
-            num_clusters_features_rest=num_clusters_features_rest,
-        ),
-        quantizate_from_iter, quantizate_until_iter, quantizate_interval
-    )
-
-
-def BaseVectorQuantizeTrainer(
-    model: GaussianModel,
-    spatial_lr_scale: float,
-        num_clusters=256,
-        num_clusters_rotation_re=None,
-        num_clusters_rotation_im=None,
-        num_clusters_opacity=None,
-        num_clusters_scaling=None,
-        num_clusters_features_dc=None,
-        num_clusters_features_rest=[],
-        quantizate_from_iter=5000,
-        quantizate_until_iter=30000,
-        quantizate_interval=1000,
-        *args, **kwargs):
-    return QuantizeTrainerWrapper(
-        BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
-        ExcludeZeroSHQuantizer(
-            model,
-            num_clusters=num_clusters,
-            num_clusters_rotation_re=num_clusters_rotation_re,
-            num_clusters_rotation_im=num_clusters_rotation_im,
-            num_clusters_opacity=num_clusters_opacity,
-            num_clusters_scaling=num_clusters_scaling,
-            num_clusters_features_dc=num_clusters_features_dc,
-            num_clusters_features_rest=num_clusters_features_rest,
-        ),
-        quantizate_from_iter, quantizate_until_iter, quantizate_interval
-    )
