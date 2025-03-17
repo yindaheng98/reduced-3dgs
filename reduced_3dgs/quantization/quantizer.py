@@ -136,9 +136,8 @@ class VectorQuantizer(AbstractQuantizer):
     def model(self) -> GaussianModel:
         return self._model
 
-    @staticmethod
     def produce_clusters(
-            self: GaussianModel,
+            self,
             num_clusters_rotation_re: int,
             num_clusters_rotation_im: int,
             num_clusters_opacity: int,
@@ -147,7 +146,7 @@ class VectorQuantizer(AbstractQuantizer):
             num_clusters_features_rest: List[int],
             init_codebook_dict={}):
         return produce_clusters(
-            self=self,
+            self=self.model,
             num_clusters_rotation_re=num_clusters_rotation_re,
             num_clusters_rotation_im=num_clusters_rotation_im,
             num_clusters_opacity=num_clusters_opacity,
@@ -157,21 +156,18 @@ class VectorQuantizer(AbstractQuantizer):
             init_codebook_dict=init_codebook_dict
         )
 
-    @staticmethod
     def apply_clustering(
-            self: GaussianModel,
+            self,
             codebook_dict: Dict[str, torch.Tensor],
             ids_dict: Dict[str, torch.Tensor]):
         return apply_clustering(
-            self=self,
+            self=self.model,
             codebook_dict=codebook_dict,
             ids_dict=ids_dict
         )
 
     def quantize(self) -> GaussianModel:
-        model = self.model
         codebook_dict, ids_dict = self.produce_clusters(
-            model,
             self.num_clusters_rotation_re,
             self.num_clusters_rotation_im,
             self.num_clusters_opacity,
@@ -180,12 +176,11 @@ class VectorQuantizer(AbstractQuantizer):
             self.num_clusters_features_rest,
             self._codebook_dict)
         self._codebook_dict = codebook_dict
-        return self.apply_clustering(model, codebook_dict, ids_dict)
+        return self.apply_clustering(codebook_dict, ids_dict)
 
     def save_quantized(self, ply_path: str):
         model = self.model
         codebook_dict, ids_dict = self.produce_clusters(
-            model,
             self.num_clusters_rotation_re,
             self.num_clusters_rotation_im,
             self.num_clusters_opacity,
@@ -239,7 +234,7 @@ class VectorQuantizer(AbstractQuantizer):
 
         PlyData([el, *cb]).write(ply_path)
 
-        return self.apply_clustering(model, codebook_dict, ids_dict)
+        return self.apply_clustering(codebook_dict, ids_dict)
 
     def load_quantized(self, ply_path: str):
         model = self.model
@@ -270,6 +265,42 @@ class VectorQuantizer(AbstractQuantizer):
         return apply_clustering(model, codebook_dict, ids_dict)
 
 
+class ExcludeZeroSHQuantizer(VectorQuantizer):
+
+    def exclude_zero_feature_rest(self, codebook_dict, ids_dict):
+        for sh_degree in range(self.model.max_sh_degree):
+            codebook, ids = codebook_dict[f'features_rest_{sh_degree}'], ids_dict[f'features_rest_{sh_degree}']
+            if codebook.abs().max() < 1e-6:  # invalid codebook
+                codebook = torch.zeros_like(codebook[:1])
+                ids[...] = 0
+            codebook_dict[f'features_rest_{sh_degree}'], ids_dict[f'features_rest_{sh_degree}'] = codebook, ids
+        return codebook_dict, ids_dict
+
+    def produce_clusters(
+            self,
+            num_clusters_rotation_re: int,
+            num_clusters_rotation_im: int,
+            num_clusters_opacity: int,
+            num_clusters_scaling: int,
+            num_clusters_features_dc: int,
+            num_clusters_features_rest: List[int],
+            init_codebook_dict={}):
+        for sh_degree in range(self.model.max_sh_degree):
+            if f"features_rest_{sh_degree}" in init_codebook_dict and init_codebook_dict[f"features_rest_{sh_degree}"].abs().max() < 1e-6:
+                init_codebook_dict[f"features_rest_{sh_degree}"] = None  # invalid codebook
+        codebook_dict, ids_dict = super().produce_clusters(
+            num_clusters_rotation_re=num_clusters_rotation_re,
+            num_clusters_rotation_im=num_clusters_rotation_im,
+            num_clusters_opacity=num_clusters_opacity,
+            num_clusters_scaling=num_clusters_scaling,
+            num_clusters_features_dc=num_clusters_features_dc,
+            num_clusters_features_rest=num_clusters_features_rest,
+            init_codebook_dict=init_codebook_dict
+        )
+        codebook_dict, ids_dict = self.exclude_zero_feature_rest(codebook_dict, ids_dict)
+        return codebook_dict, ids_dict
+
+
 def VectorQuantizeTrainerWrapper(
     base_trainer: AbstractTrainer,
         num_clusters=256,
@@ -284,7 +315,7 @@ def VectorQuantizeTrainerWrapper(
         quantizate_interval=500,
 ):
     return QuantizeTrainerWrapper(
-        base_trainer, VectorQuantizer(
+        base_trainer, ExcludeZeroSHQuantizer(
             base_trainer.model,
             num_clusters=num_clusters,
             num_clusters_rotation_re=num_clusters_rotation_re,
@@ -314,7 +345,7 @@ def BaseVectorQuantizeTrainer(
         *args, **kwargs):
     return QuantizeTrainerWrapper(
         BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
-        VectorQuantizer(
+        ExcludeZeroSHQuantizer(
             model,
             num_clusters=num_clusters,
             num_clusters_rotation_re=num_clusters_rotation_re,
