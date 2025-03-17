@@ -9,56 +9,6 @@ import numpy as np
 from .abc import AbstractQuantizer
 
 
-def generate_codebook(values: torch.Tensor, num_clusters=256, tol=1e-6, max_iter=500, init_codebook=None):
-    kmeans = KMeans(
-        n_clusters=num_clusters, tol=tol, max_iter=max_iter,
-        init='random' if init_codebook is None else init_codebook.cpu().numpy(),
-        random_state=0, n_init="auto", verbose=0,
-        batch_size=256 * os.cpu_count()
-    )
-    ids = torch.tensor(kmeans.fit_predict(values.cpu().numpy()), device=values.device)
-    centers = torch.tensor(kmeans.cluster_centers_, dtype=values.dtype, device=values.device)
-    return centers, ids
-
-
-def produce_clusters(
-        self: GaussianModel,
-        num_clusters_rotation_re: int,
-        num_clusters_rotation_im: int,
-        num_clusters_opacity: int,
-        num_clusters_scaling: int,
-        num_clusters_features_dc: int,
-        num_clusters_features_rest: List[int],
-        init_codebook_dict={}):
-    codebook_dict: Dict[str, torch.Tensor] = {}
-    ids_dict: Dict[str, torch.Tensor] = {}
-
-    init_codebook_dict = {
-        "features_dc": None,
-        **{f"features_rest_{sh_degree}": None for sh_degree in range(self.max_sh_degree)},
-        "rotation_re": None,
-        "rotation_im": None,
-        "opacity": None,
-        "scaling": None,
-        **init_codebook_dict
-    }
-
-    codebook_dict["features_dc"], ids = generate_codebook(self._features_dc.detach().squeeze(1), num_clusters=num_clusters_features_dc, init_codebook=init_codebook_dict["features_dc"])
-    ids_dict["features_dc"] = ids.unsqueeze(1)
-    features_rest_flatten = self._features_rest.detach().transpose(1, 2).flatten(0, 1)
-    for sh_degree in range(self.max_sh_degree):
-        sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
-        codebook_dict[f"features_rest_{sh_degree}"], ids = generate_codebook(features_rest_flatten[:, sh_idx_start:sh_idx_end], num_clusters=num_clusters_features_rest[sh_degree], init_codebook=init_codebook_dict[f"features_rest_{sh_degree}"])
-        ids_dict[f"features_rest_{sh_degree}"] = ids.reshape(-1, self._features_rest.shape[-1])
-
-    codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = generate_codebook(self.get_rotation.detach()[:, 0:1], num_clusters=num_clusters_rotation_re, init_codebook=init_codebook_dict["rotation_re"])
-    codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = generate_codebook(self.get_rotation.detach()[:, 1:], num_clusters=num_clusters_rotation_im, init_codebook=init_codebook_dict["rotation_im"])
-
-    codebook_dict["opacity"], ids_dict[f"opacity"] = generate_codebook(self._opacity.detach(), num_clusters=num_clusters_opacity, init_codebook=init_codebook_dict["opacity"])
-    codebook_dict["scaling"], ids_dict[f"scaling"] = generate_codebook(self.get_scaling.detach(), num_clusters=num_clusters_scaling, init_codebook=init_codebook_dict["scaling"])
-    return codebook_dict, ids_dict
-
-
 def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor], ids_dict: Dict[str, torch.Tensor]):
 
     opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
@@ -135,6 +85,41 @@ class VectorQuantizer(AbstractQuantizer):
     def model(self) -> GaussianModel:
         return self._model
 
+    @staticmethod
+    def generate_codebook(values: torch.Tensor, num_clusters=256, tol=1e-6, max_iter=500, init_codebook=None):
+        kmeans = KMeans(
+            n_clusters=num_clusters, tol=tol, max_iter=max_iter,
+            init='random' if init_codebook is None else init_codebook.cpu().numpy(),
+            random_state=0, n_init="auto", verbose=0,
+            batch_size=256 * os.cpu_count()
+        )
+        ids = torch.tensor(kmeans.fit_predict(values.cpu().numpy()), device=values.device)
+        centers = torch.tensor(kmeans.cluster_centers_, dtype=values.dtype, device=values.device)
+        return centers, ids
+
+    def generate_codebook_features_dc(self, *args, **kwargs):
+        codebook, ids = self.generate_codebook(self.model._features_dc.detach().squeeze(1), *args, **kwargs)
+        return codebook, ids.unsqueeze(1)
+
+    def generate_codebook_degree_features_rest(self, sh_degree, *args, **kwargs):
+        features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
+        sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
+        features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
+        codebook, ids = self.generate_codebook(features_rest, *args, **kwargs)
+        return codebook, ids.reshape(-1, self.model._features_rest.shape[-1])
+
+    def generate_codebook_rotation_re(self, *args, **kwargs):
+        return self.generate_codebook(self.model.get_rotation.detach()[:, 0:1], *args, **kwargs)
+
+    def generate_codebook_rotation_im(self, *args, **kwargs):
+        return self.generate_codebook(self.model.get_rotation.detach()[:, 1:], *args, **kwargs)
+
+    def generate_codebook_opacity(self, *args, **kwargs):
+        return self.generate_codebook(self.model._opacity.detach(), *args, **kwargs)
+
+    def generate_codebook_scaling(self, *args, **kwargs):
+        return self.generate_codebook(self.model.get_scaling.detach(), *args, **kwargs)
+
     def produce_clusters(
             self,
             num_clusters_rotation_re: int,
@@ -144,16 +129,30 @@ class VectorQuantizer(AbstractQuantizer):
             num_clusters_features_dc: int,
             num_clusters_features_rest: List[int],
             init_codebook_dict={}):
-        return produce_clusters(
-            self=self.model,
-            num_clusters_rotation_re=num_clusters_rotation_re,
-            num_clusters_rotation_im=num_clusters_rotation_im,
-            num_clusters_opacity=num_clusters_opacity,
-            num_clusters_scaling=num_clusters_scaling,
-            num_clusters_features_dc=num_clusters_features_dc,
-            num_clusters_features_rest=num_clusters_features_rest,
-            init_codebook_dict=init_codebook_dict
-        )
+
+        codebook_dict: Dict[str, torch.Tensor] = {}
+        ids_dict: Dict[str, torch.Tensor] = {}
+
+        init_codebook_dict = {
+            "features_dc": None,
+            **{f"features_rest_{sh_degree}": None for sh_degree in range(self.model.max_sh_degree)},
+            "rotation_re": None,
+            "rotation_im": None,
+            "opacity": None,
+            "scaling": None,
+            **init_codebook_dict
+        }
+
+        codebook_dict["features_dc"], ids_dict["features_dc"] = self.generate_codebook_features_dc(num_clusters_features_dc, init_codebook=init_codebook_dict["features_dc"])
+        for sh_degree in range(self.model.max_sh_degree):
+            codebook_dict[f"features_rest_{sh_degree}"], ids_dict[f"features_rest_{sh_degree}"] = self.generate_codebook_degree_features_rest(
+                sh_degree, num_clusters_features_rest[sh_degree], init_codebook=init_codebook_dict[f"features_rest_{sh_degree}"]
+            )
+        codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = self.generate_codebook_rotation_re(num_clusters_rotation_re, init_codebook=init_codebook_dict["rotation_re"])
+        codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = self.generate_codebook_rotation_im(num_clusters_rotation_im, init_codebook=init_codebook_dict["rotation_im"])
+        codebook_dict["opacity"], ids_dict[f"opacity"] = self.generate_codebook_opacity(num_clusters_opacity, init_codebook=init_codebook_dict["opacity"])
+        codebook_dict["scaling"], ids_dict[f"scaling"] = self.generate_codebook_scaling(num_clusters_scaling, init_codebook=init_codebook_dict["scaling"])
+        return codebook_dict, ids_dict
 
     def apply_clustering(
             self,
