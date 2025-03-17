@@ -9,31 +9,6 @@ import numpy as np
 from .abc import AbstractQuantizer
 
 
-def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor], ids_dict: Dict[str, torch.Tensor]):
-
-    opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
-    scaling = self.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
-
-    rotation = torch.cat((
-        codebook_dict["rotation_re"][ids_dict["rotation_re"], ...],
-        codebook_dict["rotation_im"][ids_dict["rotation_im"], ...],
-    ), dim=1)
-
-    features_dc = codebook_dict["features_dc"][ids_dict["features_dc"], ...]
-    features_rest = []
-    for sh_degree in range(self.max_sh_degree):
-        features_rest.append(codebook_dict[f"features_rest_{sh_degree}"][ids_dict[f"features_rest_{sh_degree}"], ...])
-    features_rest = torch.cat(features_rest, dim=2).transpose(1, 2)
-
-    with torch.no_grad():
-        self._opacity[...] = opacity
-        self._scaling[...] = scaling
-        self._rotation[...] = rotation
-        self._features_dc[...] = features_dc
-        self._features_rest[...] = features_rest
-    return self
-
-
 def array2record(array: torch.Tensor, perfix, n_cols, dtype):
     dtype_full = [(f'{perfix}_{i}', dtype) for i in range(n_cols)] if n_cols > 1 else [(perfix, dtype)]
     data_full = map(lambda x: x.squeeze(-1), np.array_split(array.cpu().numpy(), n_cols, axis=1))
@@ -158,11 +133,28 @@ class VectorQuantizer(AbstractQuantizer):
             self,
             codebook_dict: Dict[str, torch.Tensor],
             ids_dict: Dict[str, torch.Tensor]):
-        return apply_clustering(
-            self=self.model,
-            codebook_dict=codebook_dict,
-            ids_dict=ids_dict
-        )
+        model = self.model
+        opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
+        scaling = model.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
+
+        rotation = torch.cat((
+            codebook_dict["rotation_re"][ids_dict["rotation_re"], ...],
+            codebook_dict["rotation_im"][ids_dict["rotation_im"], ...],
+        ), dim=1)
+
+        features_dc = codebook_dict["features_dc"][ids_dict["features_dc"], ...]
+        features_rest = []
+        for sh_degree in range(model.max_sh_degree):
+            features_rest.append(codebook_dict[f"features_rest_{sh_degree}"][ids_dict[f"features_rest_{sh_degree}"], ...])
+        features_rest = torch.cat(features_rest, dim=2).transpose(1, 2)
+
+        with torch.no_grad():
+            model._opacity[...] = opacity
+            model._scaling[...] = scaling
+            model._rotation[...] = rotation
+            model._features_dc[...] = features_dc
+            model._features_rest[...] = features_rest
+        return model
 
     def quantize(self) -> GaussianModel:
         codebook_dict, ids_dict = self.produce_clusters(
@@ -260,4 +252,4 @@ class VectorQuantizer(AbstractQuantizer):
             n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
-        return apply_clustering(model, codebook_dict, ids_dict)
+        return self.apply_clustering(codebook_dict, ids_dict)
