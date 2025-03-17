@@ -13,7 +13,7 @@ class ExcludeZeroQuantizer(VectorQuantizer):
         zeros_mask = (values.abs() < self.treat_as_zero).all(-1)
         if zeros_mask.all():
             return torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), torch.zeros(values.shape[0], dtype=torch.long, device=values.device)
-        if not zeros_mask.sum() > self.extract_zero_thr * values.shape[0]:
+        if zeros_mask.sum() <= self.extract_zero_thr * values.shape[0]:
             return super().generate_codebook(values, num_clusters, init_codebook)
         if init_codebook is not None:
             if init_codebook.abs().max() < self.treat_as_zero:
