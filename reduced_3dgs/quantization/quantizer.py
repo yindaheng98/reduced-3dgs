@@ -10,7 +10,7 @@ from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
 from .abc import AbstractQuantizer, QuantizeTrainerWrapper
 
 
-def generate_codebook(values: torch.Tensor, num_clusters=256, tol=0.0001, max_iter=500, init_codebook=None):
+def generate_codebook(values: torch.Tensor, num_clusters=256, tol=1e-6, max_iter=500, init_codebook=None):
     kmeans = KMeans(
         n_clusters=num_clusters, tol=tol, max_iter=max_iter,
         init='random' if init_codebook is None else init_codebook.cpu().numpy(),
@@ -44,7 +44,7 @@ def produce_clusters(
         **init_codebook_dict
     }
 
-    codebook_dict["features_dc"], ids = generate_codebook(self._features_dc.detach().squeeze(1), num_clusters=num_clusters_features_dc, tol=0.001, init_codebook=init_codebook_dict["features_dc"])
+    codebook_dict["features_dc"], ids = generate_codebook(self._features_dc.detach().squeeze(1), num_clusters=num_clusters_features_dc, init_codebook=init_codebook_dict["features_dc"])
     ids_dict["features_dc"] = ids.unsqueeze(1)
     features_rest_flatten = self._features_rest.detach().transpose(1, 2).flatten(0, 1)
     for sh_degree in range(self.max_sh_degree):
