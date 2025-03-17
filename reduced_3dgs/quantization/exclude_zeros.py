@@ -15,7 +15,7 @@ class ExcludeZeroQuantizer(VectorQuantizer):
             elif init_codebook.shape[0] > num_clusters - 1 and init_codebook[0:-(num_clusters - 1), ...].abs().max() < treat_as_zero:
                 init_codebook = init_codebook[-(num_clusters - 1):, ...]
         nonzero_values = values[~zeros_mask]
-        nonzero_centers, nonzero_ids = super(ExcludeZeroQuantizer, ExcludeZeroQuantizer).generate_codebook(nonzero_values, num_clusters - 1, tol, max_iter, init_codebook)
+        nonzero_centers, nonzero_ids = super(ExcludeZeroQuantizer, ExcludeZeroQuantizer).generate_codebook(nonzero_values, num_clusters - 1, init_codebook, tol=tol, max_iter=max_iter)
         ids = torch.zeros(values.shape[0], dtype=nonzero_ids.dtype, device=nonzero_ids.device)
         ids[~zeros_mask] = nonzero_ids + 1
         centers = torch.cat((torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), nonzero_centers), dim=0)
