@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict
 import torch
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans as KMeans
@@ -44,6 +44,7 @@ class VectorQuantizer(AbstractQuantizer):
             num_clusters_features_rest=[],
             force_code_dtype=None,
             force_codebook_dtype='f4',
+            tol=1e-6, max_iter=500,
     ):
         self._model = model
         self.num_clusters_rotation_re = num_clusters_rotation_re or num_clusters
@@ -54,16 +55,18 @@ class VectorQuantizer(AbstractQuantizer):
         self.num_clusters_features_rest = [(num_clusters_features_rest[i] if len(num_clusters_features_rest) > i else num_clusters) for i in range(model.max_sh_degree)]
         self.force_code_dtype = force_code_dtype
         self.force_codebook_dtype = force_codebook_dtype
+        self.tol = tol
+        self.max_iter = max_iter
+
         self._codebook_dict = {}
 
     @property
     def model(self) -> GaussianModel:
         return self._model
 
-    @staticmethod
-    def generate_codebook(values: torch.Tensor, num_clusters, init_codebook=None, tol=1e-6, max_iter=500):
+    def generate_codebook(self, values: torch.Tensor, num_clusters, init_codebook=None):
         kmeans = KMeans(
-            n_clusters=num_clusters, tol=tol, max_iter=max_iter,
+            n_clusters=num_clusters, tol=self.tol, max_iter=self.max_iter,
             init='random' if init_codebook is None else init_codebook.cpu().numpy(),
             random_state=0, n_init="auto", verbose=0,
             batch_size=256 * os.cpu_count()
