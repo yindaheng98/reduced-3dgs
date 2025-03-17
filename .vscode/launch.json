@@ -59,7 +59,7 @@
                 "-onum_clusters_rotation_im=1024",
                 "-onum_clusters_opacity=256",
                 "-onum_clusters_features_dc=512",
-                "-onum_clusters_features_rest=256",
+                "-onum_clusters_features_rest=[256]",
             ]
         },
         {

@@ -23,6 +23,7 @@ def quantize(source, destination, iteration, sh_degree, device, **kwargs):
     gaussians.load_ply(input)
     quantizer = VectorQuantizer(gaussians, **kwargs)
     quantizer.save_quantized(output)
+    quantizer.quantize()
     quantizer.load_quantized(output)
     output = os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply")
     gaussians.save_ply(output)

@@ -178,6 +178,7 @@ class VectorQuantizer(AbstractQuantizer):
             self.num_clusters_features_dc,
             self.num_clusters_features_rest,
             self._codebook_dict)
+        self._codebook_dict = codebook_dict
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -252,4 +253,5 @@ class VectorQuantizer(AbstractQuantizer):
             n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
+        self._codebook_dict = codebook_dict
         return self.apply_clustering(codebook_dict, ids_dict)
