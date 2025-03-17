@@ -56,14 +56,14 @@ def produce_clusters(
     codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = generate_codebook(self.get_rotation.detach()[:, 1:], num_clusters=num_clusters_rotation_im, init_codebook=init_codebook_dict["rotation_im"])
 
     codebook_dict["opacity"], ids_dict[f"opacity"] = generate_codebook(self._opacity.detach(), num_clusters=num_clusters_opacity, init_codebook=init_codebook_dict["opacity"])
-    codebook_dict["scaling"], ids_dict[f"scaling"] = generate_codebook(self._scaling.detach(), num_clusters=num_clusters_scaling, init_codebook=init_codebook_dict["scaling"])
+    codebook_dict["scaling"], ids_dict[f"scaling"] = generate_codebook(self.get_scaling.detach(), num_clusters=num_clusters_scaling, init_codebook=init_codebook_dict["scaling"])
     return codebook_dict, ids_dict
 
 
 def apply_clustering(self: GaussianModel, codebook_dict: Dict[str, torch.Tensor], ids_dict: Dict[str, torch.Tensor]):
 
     opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
-    scaling = codebook_dict["scaling"][ids_dict["scaling"], ...]
+    scaling = self.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
 
     rotation = torch.cat((
         codebook_dict["rotation_re"][ids_dict["rotation_re"], ...],

@@ -4,13 +4,17 @@ from gaussian_splatting import GaussianModel
 from reduced_3dgs.quantization import ExcludeZeroSHQuantizer as VectorQuantizer
 
 
+def copy_not_exists(source, destination):
+    if os.path.exists(destination):
+        if os.path.samefile(source, destination):
+            return
+        os.remove(destination)
+    shutil.copy(source, destination)
+
+
 def quantize(source, destination, iteration, sh_degree, device, **kwargs):
-    if os.path.exists(os.path.join(destination, "cfg_args")):
-        os.remove(os.path.join(destination, "cfg_args"))
-    shutil.copy(os.path.join(source, "cfg_args"), os.path.join(destination, "cfg_args"))
-    if os.path.exists(os.path.join(destination, "cameras.json")):
-        os.remove(os.path.join(destination, "cameras.json"))
-    shutil.copy(os.path.join(source, "cameras.json"), os.path.join(destination, "cameras.json"))
+    copy_not_exists(os.path.join(source, "cfg_args"), os.path.join(destination, "cfg_args"))
+    copy_not_exists(os.path.join(source, "cameras.json"), os.path.join(destination, "cameras.json"))
 
     input = os.path.join(source, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply")
     output = os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud_quantized.ply")
