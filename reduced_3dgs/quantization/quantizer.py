@@ -97,27 +97,27 @@ class VectorQuantizer(AbstractQuantizer):
         centers = torch.tensor(kmeans.cluster_centers_, dtype=values.dtype, device=values.device)
         return centers, ids
 
-    def generate_codebook_features_dc(self, *args, **kwargs):
+    def produce_clusters_features_dc(self, *args, **kwargs):
         codebook, ids = self.generate_codebook(self.model._features_dc.detach().squeeze(1), *args, **kwargs)
         return codebook, ids.unsqueeze(1)
 
-    def generate_codebook_degree_features_rest(self, sh_degree, *args, **kwargs):
+    def produce_clusters_degree_features_rest(self, sh_degree, *args, **kwargs):
         features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
         sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
         features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
         codebook, ids = self.generate_codebook(features_rest, *args, **kwargs)
         return codebook, ids.reshape(-1, self.model._features_rest.shape[-1])
 
-    def generate_codebook_rotation_re(self, *args, **kwargs):
+    def produce_clusters_rotation_re(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_rotation.detach()[:, 0:1], *args, **kwargs)
 
-    def generate_codebook_rotation_im(self, *args, **kwargs):
+    def produce_clusters_rotation_im(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_rotation.detach()[:, 1:], *args, **kwargs)
 
-    def generate_codebook_opacity(self, *args, **kwargs):
+    def produce_clusters_opacity(self, *args, **kwargs):
         return self.generate_codebook(self.model._opacity.detach(), *args, **kwargs)
 
-    def generate_codebook_scaling(self, *args, **kwargs):
+    def produce_clusters_scaling(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_scaling.detach(), *args, **kwargs)
 
     def produce_clusters(
@@ -143,15 +143,15 @@ class VectorQuantizer(AbstractQuantizer):
             **init_codebook_dict
         }
 
-        codebook_dict["features_dc"], ids_dict["features_dc"] = self.generate_codebook_features_dc(num_clusters_features_dc, init_codebook=init_codebook_dict["features_dc"])
+        codebook_dict["features_dc"], ids_dict["features_dc"] = self.produce_clusters_features_dc(num_clusters_features_dc, init_codebook=init_codebook_dict["features_dc"])
         for sh_degree in range(self.model.max_sh_degree):
-            codebook_dict[f"features_rest_{sh_degree}"], ids_dict[f"features_rest_{sh_degree}"] = self.generate_codebook_degree_features_rest(
+            codebook_dict[f"features_rest_{sh_degree}"], ids_dict[f"features_rest_{sh_degree}"] = self.produce_clusters_degree_features_rest(
                 sh_degree, num_clusters_features_rest[sh_degree], init_codebook=init_codebook_dict[f"features_rest_{sh_degree}"]
             )
-        codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = self.generate_codebook_rotation_re(num_clusters_rotation_re, init_codebook=init_codebook_dict["rotation_re"])
-        codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = self.generate_codebook_rotation_im(num_clusters_rotation_im, init_codebook=init_codebook_dict["rotation_im"])
-        codebook_dict["opacity"], ids_dict[f"opacity"] = self.generate_codebook_opacity(num_clusters_opacity, init_codebook=init_codebook_dict["opacity"])
-        codebook_dict["scaling"], ids_dict[f"scaling"] = self.generate_codebook_scaling(num_clusters_scaling, init_codebook=init_codebook_dict["scaling"])
+        codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = self.produce_clusters_rotation_re(num_clusters_rotation_re, init_codebook=init_codebook_dict["rotation_re"])
+        codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = self.produce_clusters_rotation_im(num_clusters_rotation_im, init_codebook=init_codebook_dict["rotation_im"])
+        codebook_dict["opacity"], ids_dict[f"opacity"] = self.produce_clusters_opacity(num_clusters_opacity, init_codebook=init_codebook_dict["opacity"])
+        codebook_dict["scaling"], ids_dict[f"scaling"] = self.produce_clusters_scaling(num_clusters_scaling, init_codebook=init_codebook_dict["scaling"])
         return codebook_dict, ids_dict
 
     def apply_clustering(
