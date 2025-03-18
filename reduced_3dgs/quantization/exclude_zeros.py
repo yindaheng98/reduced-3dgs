@@ -8,8 +8,11 @@ class ExcludeZeroSHQuantizer(VectorQuantizer):
         super(ExcludeZeroSHQuantizer, self).__init__(model, *args, **kwargs)
         self.treat_as_zero = treat_as_zero
 
+    def zeros_mask(self, values: torch.Tensor):
+        return (values.abs() < self.treat_as_zero).all(-1)
+
     def generate_codebook_exclude_zero(self, values: torch.Tensor, num_clusters=256, init_codebook=None):
-        zeros_mask = (values.abs() < self.treat_as_zero).all(-1)
+        zeros_mask = self.zeros_mask(values)
         if zeros_mask.all():
             return torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), torch.zeros(values.shape[0], dtype=torch.long, device=values.device)
         if init_codebook is not None:
@@ -24,9 +27,15 @@ class ExcludeZeroSHQuantizer(VectorQuantizer):
         centers = torch.cat((torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), nonzero_centers), dim=0)
         return centers, ids
 
+    def has_zero(self, values: torch.Tensor):
+        return self.zeros_mask(values).any()
+
     def produce_clusters_degree_features_rest(self, sh_degree, *args, **kwargs):
         features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
         sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
         features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
-        codebook, ids = self.generate_codebook_exclude_zero(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
+        if self.has_zero(features_rest):
+            codebook, ids = self.generate_codebook_exclude_zero(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
+        else:
+            codebook, ids = self.generate_codebook(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
         return codebook, ids.reshape(-1, self.model._features_rest.shape[-1])
