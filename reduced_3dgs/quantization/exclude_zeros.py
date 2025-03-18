@@ -4,17 +4,14 @@ from .quantizer import VectorQuantizer
 
 
 class ExcludeZeroSHQuantizer(VectorQuantizer):
-    def __init__(self, model: GaussianModel, *args, treat_as_zero=1e-8, extract_zero_thr=0.5, **kwargs):
+    def __init__(self, model: GaussianModel, *args, treat_as_zero=1e-8, **kwargs):
         super(ExcludeZeroSHQuantizer, self).__init__(model, *args, **kwargs)
         self.treat_as_zero = treat_as_zero
-        self.extract_zero_thr = extract_zero_thr
 
     def generate_codebook_exclude_zero(self, values: torch.Tensor, num_clusters=256, init_codebook=None):
         zeros_mask = (values.abs() < self.treat_as_zero).all(-1)
         if zeros_mask.all():
             return torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), torch.zeros(values.shape[0], dtype=torch.long, device=values.device)
-        if zeros_mask.sum() <= self.extract_zero_thr * values.shape[0]:
-            return super().generate_codebook(values, num_clusters, init_codebook)
         if init_codebook is not None:
             if init_codebook.abs().max() < self.treat_as_zero:
                 init_codebook = None
