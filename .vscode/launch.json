@@ -82,6 +82,8 @@
                 "--num_clusters_opacity=256",
                 "--num_clusters_features_dc=512",
                 "--num_clusters_features_rest=256",
+                "--num_clusters_features_rest=128",
+                "--num_clusters_features_rest=64",
             ]
         },
     ]
