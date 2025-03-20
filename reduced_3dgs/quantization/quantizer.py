@@ -67,7 +67,7 @@ class VectorQuantizer(AbstractQuantizer):
     def generate_codebook(self, values: torch.Tensor, num_clusters, init_codebook=None):
         kmeans = KMeans(
             n_clusters=num_clusters, tol=self.tol, max_iter=self.max_iter,
-            init='random' if init_codebook is None else init_codebook.cpu().numpy(),
+            init='k-means++' if init_codebook is None else init_codebook.cpu().numpy(),
             random_state=0, n_init="auto", verbose=0,
             batch_size=256 * os.cpu_count()
         )
