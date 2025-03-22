@@ -9,14 +9,18 @@ This repository contains the **refactored Python code for [Reduced-3DGS](https:/
 * [x] SH Culling
 * [x] Vector quantization by K-Means
 
-## Installation
-
-### Prerequisites
+## Prerequisites
 
 * [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
 
-### Install
+## Install (PyPI)
+
+```sh
+pip install --upgrade reduced-3dgs
+```
+
+## Install (Build from source)
 
 ```sh
 pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
@@ -26,7 +30,7 @@ If you have trouble with [`gaussian-splatting`](https://github.com/yindaheng98/g
 pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 ```
 
-### Install for Development
+## Install (Development)
 
 Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting).
 You can download the wheel from [PyPI](https://pypi.org/project/gaussian-splatting/):
