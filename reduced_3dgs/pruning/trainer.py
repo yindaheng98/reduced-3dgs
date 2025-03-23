@@ -134,9 +134,6 @@ def BasePruningTrainer(
 class PrunerInDensify(Densifier):
     def __init__(
             self, model: GaussianModel, scene_extent, dataset: List[Camera],
-            mercy_from_iter=3000,
-            mercy_until_iter=20000,
-            mercy_interval: int = 100,
             box_size=1.,
             lambda_mercy=1.,
             mercy_minimum=3,
@@ -144,26 +141,15 @@ class PrunerInDensify(Densifier):
             *args, **kwargs):
         super().__init__(model, scene_extent, *args, **kwargs)
         self.dataset = dataset
-        self.mercy_from_iter = mercy_from_iter
-        self.mercy_until_iter = mercy_until_iter
-        self.mercy_interval = mercy_interval
         self.box_size = box_size
         self.lambda_mercy = lambda_mercy
         self.mercy_minimum = mercy_minimum
         self.mercy_type = mercy_type
-        self.mercy_from_iter = mercy_from_iter
 
-    def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
-        instruct = super().densify_and_prune(loss, out, camera, step)
-        if self.mercy_from_iter <= step < self.mercy_until_iter and step % self.mercy_interval == 0:
-            _splatted_num_accum, _ = calculate_redundancy_metric(self.model, self.dataset, pixel_scale=self.box_size)
-            mask = mercy_points(self.model, _splatted_num_accum.squeeze(), self.lambda_mercy, self.mercy_minimum, self.mercy_type)
-            instruct = instruct._replace(remove_mask=mask if instruct.remove_mask is None else torch.logical_or(instruct.remove_mask, mask))
-            self.xyz_gradient_accum = None
-            self.denom = None
-            self.max_radii2D = None
-            torch.cuda.empty_cache()
-        return instruct
+    def prune(self) -> torch.Tensor:
+        _splatted_num_accum, _ = calculate_redundancy_metric(self.model, self.dataset, pixel_scale=self.box_size)
+        mask = mercy_points(self.model, _splatted_num_accum.squeeze(), self.lambda_mercy, self.mercy_minimum, self.mercy_type)
+        return mask
 
 
 def BasePrunerInDensifyTrainer(
@@ -171,9 +157,6 @@ def BasePrunerInDensifyTrainer(
         scene_extent: float,
 
         dataset: List[Camera],
-        mercy_from_iter=3000,
-        mercy_until_iter=20000,
-        mercy_interval: int = 100,
         box_size=1.,
         lambda_mercy=1.,
         mercy_minimum=3,
@@ -197,7 +180,6 @@ def BasePrunerInDensifyTrainer(
         model, scene_extent,
         PrunerInDensify(
             model, scene_extent, dataset,
-            mercy_from_iter, mercy_until_iter, mercy_interval,
             box_size, lambda_mercy, mercy_minimum, mercy_type,
             percent_dense,
             densify_from_iter, densify_until_iter, densify_interval, densify_grad_threshold, densify_opacity_threshold,
