@@ -180,7 +180,7 @@ if __name__ == "__main__":
     parser.add_argument("--quantize", action='store_true')
     parser.add_argument("--load_quantized", default=None, type=str)
     parser.add_argument("--mode", choices=list(basemodes.keys()) + list(cameramodes.keys()), default="densify-prune-shculling")
-    parser.add_argument("--save_iterations", nargs="+", type=int, default=[7000, 30000])
+    parser.add_argument("--save_iterations", default=[7000, 30000], action='append', type=int)
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("-o", "--option", default=[], action='append', type=str)
     args = parser.parse_args()
