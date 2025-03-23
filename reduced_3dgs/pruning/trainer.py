@@ -89,7 +89,7 @@ class BasePruner(AbstractDensifier):
             lambda_mercy=1.,
             mercy_minimum=3,
             mercy_type='redundancy_opacity'):
-        self.model = model
+        self._model = model
         self.dataset = dataset
         self.prune_from_iter = prune_from_iter
         self.prune_until_iter = prune_until_iter
@@ -98,6 +98,10 @@ class BasePruner(AbstractDensifier):
         self.lambda_mercy = lambda_mercy
         self.mercy_minimum = mercy_minimum
         self.mercy_type = mercy_type
+
+    @property
+    def model(self) -> GaussianModel:
+        return self._model
 
     def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
         if self.prune_from_iter < step < self.prune_until_iter and step % self.prune_interval == 0:

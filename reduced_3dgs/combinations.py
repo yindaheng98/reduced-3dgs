@@ -24,8 +24,9 @@ def OpacityResetPrunerInDensifyTrainer(
     )
 
 
-def SHCullingDensifyTrainer(
-    model: VariableSHGaussianModel,
+def _SHCullingTrainerWrapper(
+    base_trainer_constructor,
+        model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
@@ -33,11 +34,23 @@ def SHCullingDensifyTrainer(
         cull_at_steps=[15000],
         *args, **kwargs):
     return SHCuller(
-        OpacityResetDensificationTrainer(model, scene_extent, *args, **kwargs),
+        base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
         dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,
         cull_at_steps=cull_at_steps,
+    )
+
+
+def SHCullingDensifyTrainer(
+    model: VariableSHGaussianModel,
+        scene_extent: float,
+        dataset: CameraDataset,
+        *args, **kwargs):
+    return _SHCullingTrainerWrapper(
+        lambda model, scene_extent, dataset, *args, **kwargs: OpacityResetDensificationTrainer(model, scene_extent, *args, **kwargs),
+        model, scene_extent, dataset,
+        *args, **kwargs
     )
 
 
@@ -45,16 +58,11 @@ def SHCullingPruneTrainer(
     model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
         *args, **kwargs):
-    return SHCuller(
-        BasePruningTrainer(model, scene_extent, *args, **kwargs),
-        dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
+    return _SHCullingTrainerWrapper(
+        BasePruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
     )
 
 
@@ -62,16 +70,11 @@ def SHCullingPruningDensifyTrainer(
     model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
         *args, **kwargs):
-    return SHCuller(
-        OpacityResetPrunerInDensifyTrainer(model, scene_extent, dataset, *args, **kwargs),
-        dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
+    return _SHCullingTrainerWrapper(
+        OpacityResetPrunerInDensifyTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
     )
 
 
