@@ -149,7 +149,7 @@ class PrunerInDensify(Densifier):
     def prune(self) -> torch.Tensor:
         _splatted_num_accum, _ = calculate_redundancy_metric(self.model, self.dataset, pixel_scale=self.box_size)
         mask = mercy_points(self.model, _splatted_num_accum.squeeze(), self.lambda_mercy, self.mercy_minimum, self.mercy_type)
-        return mask
+        return torch.logical_or(mask, super().prune())
 
 
 def BasePrunerInDensifyTrainer(
@@ -162,19 +162,19 @@ def BasePrunerInDensifyTrainer(
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
 
-        percent_dense=0.01,
-        percent_too_big=1,
-
         densify_from_iter=500,
         densify_until_iter=15000,
         densify_interval=100,
         densify_grad_threshold=0.0002,
         densify_opacity_threshold=0.005,
+        densify_percent_dense=0.01,
+        densify_percent_too_big=0.8,
 
         prune_from_iter=1000,
         prune_until_iter=15000,
         prune_interval=100,
         prune_screensize_threshold=20,
+        prune_percent_too_big=1,
 
         *args, **kwargs):
     return DensificationTrainer(
@@ -182,16 +182,17 @@ def BasePrunerInDensifyTrainer(
         PrunerInDensify(
             model, scene_extent, dataset,
             box_size, lambda_mercy, mercy_minimum, mercy_type,
-            percent_dense=percent_dense,
-            percent_too_big=percent_too_big,
             densify_from_iter=densify_from_iter,
             densify_until_iter=densify_until_iter,
             densify_interval=densify_interval,
             densify_grad_threshold=densify_grad_threshold,
             densify_opacity_threshold=densify_opacity_threshold,
+            densify_percent_dense=densify_percent_dense,
+            densify_percent_too_big=densify_percent_too_big,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
             prune_interval=prune_interval,
             prune_screensize_threshold=prune_screensize_threshold,
+            prune_percent_too_big=prune_percent_too_big
         ), *args, **kwargs
     )
