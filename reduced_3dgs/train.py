@@ -133,7 +133,7 @@ def save_cfg_args(destination: str, sh_degree: int, source: str):
         cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
 
 
-def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: AbstractTrainer, quantizer: AbstractQuantizer, destination: str, iteration: int, save_iterations: List[int], device: str):
+def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: AbstractTrainer, quantizer: AbstractQuantizer, destination: str, iteration: int, save_iterations: List[int], device: str, empty_cache_every_step=False):
     shutil.rmtree(os.path.join(destination, "point_cloud"), ignore_errors=True)  # remove the previous point cloud
     pbar = tqdm(range(1, iteration+1))
     epoch = list(range(len(dataset)))
@@ -148,6 +148,8 @@ def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: Abstract
             random.shuffle(epoch)
         idx = epoch[epoch_idx]
         loss, out = trainer.step(dataset[idx])
+        if empty_cache_every_step:
+            torch.cuda.empty_cache()
         with torch.no_grad():
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
             epoch_psnr = torch.concat([epoch_psnr, psnr(out["render"], dataset[idx].ground_truth_image)], dim=1)
@@ -182,6 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=list(basemodes.keys()) + list(cameramodes.keys()), default="densify-prune-shculling")
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7000, 30000])
     parser.add_argument("--device", default="cuda", type=str)
+    parser.add_argument("--empty_cache_every_step", action='store_true')
     parser.add_argument("-o", "--option", default=[], action='append', type=str)
     args = parser.parse_args()
     save_cfg_args(args.destination, args.sh_degree, args.source)
