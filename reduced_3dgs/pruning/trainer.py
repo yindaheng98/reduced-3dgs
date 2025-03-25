@@ -163,6 +163,7 @@ def BasePrunerInDensifyTrainer(
         mercy_type='redundancy_opacity',
 
         percent_dense=0.01,
+        percent_too_big=1,
 
         densify_from_iter=500,
         densify_until_iter=15000,
@@ -181,8 +182,16 @@ def BasePrunerInDensifyTrainer(
         PrunerInDensify(
             model, scene_extent, dataset,
             box_size, lambda_mercy, mercy_minimum, mercy_type,
-            percent_dense,
-            densify_from_iter, densify_until_iter, densify_interval, densify_grad_threshold, densify_opacity_threshold,
-            prune_from_iter, prune_until_iter, prune_interval, prune_screensize_threshold
+            percent_dense=percent_dense,
+            percent_too_big=percent_too_big,
+            densify_from_iter=densify_from_iter,
+            densify_until_iter=densify_until_iter,
+            densify_interval=densify_interval,
+            densify_grad_threshold=densify_grad_threshold,
+            densify_opacity_threshold=densify_opacity_threshold,
+            prune_from_iter=prune_from_iter,
+            prune_until_iter=prune_until_iter,
+            prune_interval=prune_interval,
+            prune_screensize_threshold=prune_screensize_threshold,
         ), *args, **kwargs
     )
