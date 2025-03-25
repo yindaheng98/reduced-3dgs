@@ -96,6 +96,10 @@ def _CameraTrainerWrapper(
         camera_rotation_lr_final=0.000001,
         camera_rotation_lr_delay_mult=0.01,
         camera_rotation_lr_max_steps=30_000,
+        camera_exposure_lr_init=0.001,
+        camera_exposure_lr_final=0.0001,
+        camera_exposure_lr_delay_mult=0.01,
+        camera_exposure_lr_max_steps=30_000,
         *args, **kwargs):
     return CameraOptimizer(
         base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
@@ -107,7 +111,11 @@ def _CameraTrainerWrapper(
         camera_rotation_lr_init=camera_rotation_lr_init,
         camera_rotation_lr_final=camera_rotation_lr_final,
         camera_rotation_lr_delay_mult=camera_rotation_lr_delay_mult,
-        camera_rotation_lr_max_steps=camera_rotation_lr_max_steps
+        camera_rotation_lr_max_steps=camera_rotation_lr_max_steps,
+        camera_exposure_lr_init=camera_exposure_lr_init,
+        camera_exposure_lr_final=camera_exposure_lr_final,
+        camera_exposure_lr_delay_mult=camera_exposure_lr_delay_mult,
+        camera_exposure_lr_max_steps=camera_exposure_lr_max_steps,
     )
 
 
