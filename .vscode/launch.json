@@ -71,7 +71,7 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "output/truck-reduced",
+                "output/truck",
                 "-d",
                 "output/truck-quantized",
                 "-i",

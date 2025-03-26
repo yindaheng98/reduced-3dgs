@@ -1,3 +1,4 @@
+import math
 import os
 from typing import Dict
 import torch
@@ -75,9 +76,18 @@ class VectorQuantizer(AbstractQuantizer):
         centers = torch.tensor(kmeans.cluster_centers_, dtype=values.dtype, device=values.device)
         return centers, ids
 
+    def one_nearst(self, points: torch.Tensor, codebook: torch.Tensor, batch=2**16):
+        ids = torch.zeros(points.shape[0], dtype=torch.int64, device=points.device)
+        for i in range(math.ceil(points.shape[0]/batch)):
+            ids[i*batch:i*batch+batch] = torch.argmin(torch.cdist(points[i*batch:i*batch+batch, ...], codebook), dim=1)
+        return ids
+
     def produce_clusters_features_dc(self, *args, **kwargs):
         codebook, ids = self.generate_codebook(self.model._features_dc.detach().squeeze(1), self.num_clusters_features_dc, *args, **kwargs)
         return codebook, ids.unsqueeze(1)
+
+    def find_nearest_cluster_id_features_dc(self, codebook: torch.Tensor):
+        return self.one_nearst(self.model._features_dc.detach().squeeze(1), codebook)
 
     def produce_clusters_degree_features_rest(self, sh_degree, *args, **kwargs):
         features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
@@ -149,9 +159,12 @@ class VectorQuantizer(AbstractQuantizer):
             model._features_rest[...] = features_rest
         return model
 
-    def quantize(self) -> GaussianModel:
-        codebook_dict, ids_dict = self.produce_clusters(self._codebook_dict)
-        self._codebook_dict = codebook_dict
+    def quantize(self, update_codebook=True) -> GaussianModel:
+        if self._codebook_dict is {} or update_codebook:
+            codebook_dict, ids_dict = self.produce_clusters(self._codebook_dict)
+            self._codebook_dict = codebook_dict
+        else:
+            ids_dict = self.find_nearest_cluster_id(self._codebook_dict)
         return self.apply_clustering(codebook_dict, ids_dict)
 
     def save_quantized(self, ply_path: str):
