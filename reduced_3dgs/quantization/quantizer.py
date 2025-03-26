@@ -96,6 +96,13 @@ class VectorQuantizer(AbstractQuantizer):
         codebook, ids = self.generate_codebook(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
         return codebook, ids.reshape(-1, self.model._features_rest.shape[-1])
 
+    def find_nearest_cluster_id_degree_features_rest(self, sh_degree, codebook: torch.Tensor):
+        features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
+        sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
+        features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
+        ids = self.one_nearst(features_rest, codebook)
+        return ids.reshape(-1, self.model._features_rest.shape[-1])
+
     def produce_clusters_rotation_re(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_rotation.detach()[:, 0:1], self.num_clusters_rotation_re, *args, **kwargs)
 
@@ -131,6 +138,19 @@ class VectorQuantizer(AbstractQuantizer):
         codebook_dict["opacity"], ids_dict[f"opacity"] = self.produce_clusters_opacity(init_codebook=init_codebook_dict["opacity"])
         codebook_dict["scaling"], ids_dict[f"scaling"] = self.produce_clusters_scaling(init_codebook=init_codebook_dict["scaling"])
         return codebook_dict, ids_dict
+
+    def find_nearest_cluster_id(self, codebook_dict={}):
+        ids_dict: Dict[str, torch.Tensor] = {}
+        ids_dict["features_dc"] = self.find_nearest_cluster_id_features_dc(codebook=codebook_dict["features_dc"])
+        for sh_degree in range(self.model.max_sh_degree):
+            ids_dict[f"features_rest_{sh_degree}"] = self.find_nearest_cluster_id_degree_features_rest(
+                sh_degree, codebook=codebook_dict[f"features_rest_{sh_degree}"]
+            )
+        ids_dict[f"rotation_re"] = self.find_nearest_cluster_id_rotation_re(codebook=codebook_dict["rotation_re"])
+        ids_dict[f"rotation_im"] = self.find_nearest_cluster_id_rotation_im(codebook=codebook_dict["rotation_im"])
+        ids_dict[f"opacity"] = self.find_nearest_cluster_id_opacity(codebook=codebook_dict["opacity"])
+        ids_dict[f"scaling"] = self.find_nearest_cluster_id_scaling(codebook=codebook_dict["scaling"])
+        return ids_dict
 
     def apply_clustering(
             self,
