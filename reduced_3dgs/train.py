@@ -161,13 +161,13 @@ def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: Abstract
             gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
             dataset.save_cameras(os.path.join(destination, "cameras.json"))
             if quantizer:
-                quantizer.save_quantized(os.path.join(save_path, "point_cloud_quantized.ply"))
+                quantizer.save_quantized(gaussians, os.path.join(save_path, "point_cloud_quantized.ply"))
     save_path = os.path.join(destination, "point_cloud", "iteration_" + str(iteration))
     os.makedirs(save_path, exist_ok=True)
     gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
     dataset.save_cameras(os.path.join(destination, "cameras.json"))
     if quantizer:
-        quantizer.save_quantized(os.path.join(save_path, "point_cloud_quantized.ply"))
+        quantizer.save_quantized(gaussians, os.path.join(save_path, "point_cloud_quantized.ply"))
 
 
 if __name__ == "__main__":

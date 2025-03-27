@@ -197,8 +197,8 @@ class VectorQuantizer(AbstractQuantizer):
         return self.apply_clustering(model, codebook_dict, ids_dict)
 
     def save_quantized(self, model: GaussianModel, ply_path: str):
-        codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
-        self._codebook_dict = codebook_dict
+        ids_dict = self.quantize(model, update_codebook=False)
+        codebook_dict = self._codebook_dict
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
