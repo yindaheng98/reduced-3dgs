@@ -197,7 +197,7 @@ class VectorQuantizer(AbstractQuantizer):
         return self.apply_clustering(model, codebook_dict, ids_dict)
 
     def save_quantized(self, model: GaussianModel, ply_path: str):
-        ids_dict = self.quantize(model, update_codebook=False)
+        ids_dict = self.find_nearest_cluster_id(model, self._codebook_dict)
         codebook_dict = self._codebook_dict
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
