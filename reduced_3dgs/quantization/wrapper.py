@@ -16,10 +16,10 @@ def VectorQuantizeTrainerWrapper(
         quantizate_from_iter=5000,
         quantizate_until_iter=30000,
         quantizate_interval=500,
+        treat_as_zero=1e-8,
 ):
     return QuantizeTrainerWrapper(
         base_trainer, ExcludeZeroSHQuantizer(
-            base_trainer.model,
             num_clusters=num_clusters,
             num_clusters_rotation_re=num_clusters_rotation_re,
             num_clusters_rotation_im=num_clusters_rotation_im,
@@ -27,6 +27,7 @@ def VectorQuantizeTrainerWrapper(
             num_clusters_scaling=num_clusters_scaling,
             num_clusters_features_dc=num_clusters_features_dc,
             num_clusters_features_rest=num_clusters_features_rest,
+            treat_as_zero=treat_as_zero,
         ),
         quantizate_from_iter, quantizate_until_iter, quantizate_interval
     )
@@ -45,11 +46,11 @@ def BaseVectorQuantizeTrainer(
         quantizate_from_iter=5000,
         quantizate_until_iter=30000,
         quantizate_interval=1000,
+        treat_as_zero=1e-8,
         *args, **kwargs):
     return QuantizeTrainerWrapper(
         BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
         ExcludeZeroSHQuantizer(
-            model,
             num_clusters=num_clusters,
             num_clusters_rotation_re=num_clusters_rotation_re,
             num_clusters_rotation_im=num_clusters_rotation_im,
@@ -57,6 +58,7 @@ def BaseVectorQuantizeTrainer(
             num_clusters_scaling=num_clusters_scaling,
             num_clusters_features_dc=num_clusters_features_dc,
             num_clusters_features_rest=num_clusters_features_rest,
+            treat_as_zero=treat_as_zero,
         ),
         quantizate_from_iter, quantizate_until_iter, quantizate_interval
     )

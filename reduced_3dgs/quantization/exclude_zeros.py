@@ -4,8 +4,8 @@ from .quantizer import VectorQuantizer
 
 
 class ExcludeZeroSHQuantizer(VectorQuantizer):
-    def __init__(self, model: GaussianModel, *args, treat_as_zero=1e-8, **kwargs):
-        super(ExcludeZeroSHQuantizer, self).__init__(model, *args, **kwargs)
+    def __init__(self, *args, treat_as_zero=1e-8, **kwargs):
+        super(ExcludeZeroSHQuantizer, self).__init__(*args, **kwargs)
         self.treat_as_zero = treat_as_zero
 
     def zeros_mask(self, values: torch.Tensor):
@@ -30,12 +30,12 @@ class ExcludeZeroSHQuantizer(VectorQuantizer):
     def has_zero(self, values: torch.Tensor):
         return self.zeros_mask(values).any()
 
-    def produce_clusters_degree_features_rest(self, sh_degree, *args, **kwargs):
-        features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
+    def produce_clusters_degree_features_rest(self, model: GaussianModel, sh_degree, *args, **kwargs):
+        features_rest_flatten = model._features_rest.detach().transpose(1, 2).flatten(0, 1)
         sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
         features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
         if self.has_zero(features_rest):
             codebook, ids = self.generate_codebook_exclude_zero(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
         else:
             codebook, ids = self.generate_codebook(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
-        return codebook, ids.reshape(-1, self.model._features_rest.shape[-1])
+        return codebook, ids.reshape(-1, model._features_rest.shape[-1])

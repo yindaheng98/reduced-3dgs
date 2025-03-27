@@ -48,7 +48,7 @@
                 "-s",
                 "data/truck",
                 "-d",
-                "output/truck-reduced-quantize",
+                "output/truck-quantize-reduced",
                 "-i",
                 "30000",
                 "--mode",

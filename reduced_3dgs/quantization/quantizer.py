@@ -35,7 +35,7 @@ def compute_uint_dtype(n):
 
 class VectorQuantizer(AbstractQuantizer):
     def __init__(
-            self, model: GaussianModel,
+            self,
             num_clusters=256,
             num_clusters_rotation_re=None,
             num_clusters_rotation_im=None,
@@ -43,27 +43,23 @@ class VectorQuantizer(AbstractQuantizer):
             num_clusters_scaling=None,
             num_clusters_features_dc=None,
             num_clusters_features_rest=[],
+            max_sh_degree=3,
             force_code_dtype=None,
             force_codebook_dtype='f4',
             tol=1e-6, max_iter=500,
     ):
-        self._model = model
         self.num_clusters_rotation_re = num_clusters_rotation_re or num_clusters
         self.num_clusters_rotation_im = num_clusters_rotation_im or num_clusters
         self.num_clusters_opacity = num_clusters_opacity or num_clusters
         self.num_clusters_scaling = num_clusters_scaling or num_clusters
         self.num_clusters_features_dc = num_clusters_features_dc or num_clusters
-        self.num_clusters_features_rest = [(num_clusters_features_rest[i] if len(num_clusters_features_rest) > i else num_clusters) for i in range(model.max_sh_degree)]
+        self.num_clusters_features_rest = [(num_clusters_features_rest[i] if len(num_clusters_features_rest) > i else num_clusters) for i in range(max_sh_degree)]
         self.force_code_dtype = force_code_dtype
         self.force_codebook_dtype = force_codebook_dtype
         self.tol = tol
         self.max_iter = max_iter
 
         self._codebook_dict = {}
-
-    @property
-    def model(self) -> GaussianModel:
-        return self._model
 
     def generate_codebook(self, values: torch.Tensor, num_clusters, init_codebook=None):
         kmeans = KMeans(
@@ -82,57 +78,57 @@ class VectorQuantizer(AbstractQuantizer):
             ids[i*batch:i*batch+batch] = torch.argmin(torch.cdist(points[i*batch:i*batch+batch, ...], codebook), dim=1)
         return ids
 
-    def produce_clusters_features_dc(self, *args, **kwargs):
-        codebook, ids = self.generate_codebook(self.model._features_dc.detach().squeeze(1), self.num_clusters_features_dc, *args, **kwargs)
+    def produce_clusters_features_dc(self, model: GaussianModel, *args, **kwargs):
+        codebook, ids = self.generate_codebook(model._features_dc.detach().squeeze(1), self.num_clusters_features_dc, *args, **kwargs)
         return codebook, ids.unsqueeze(1)
 
-    def find_nearest_cluster_id_features_dc(self, codebook: torch.Tensor):
-        return self.one_nearst(self.model._features_dc.detach().squeeze(1), codebook).unsqueeze(1)
+    def find_nearest_cluster_id_features_dc(self, model: GaussianModel, codebook: torch.Tensor):
+        return self.one_nearst(model._features_dc.detach().squeeze(1), codebook).unsqueeze(1)
 
-    def produce_clusters_degree_features_rest(self, sh_degree, *args, **kwargs):
-        features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
+    def produce_clusters_degree_features_rest(self, model: GaussianModel, sh_degree, *args, **kwargs):
+        features_rest_flatten = model._features_rest.detach().transpose(1, 2).flatten(0, 1)
         sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
         features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
         codebook, ids = self.generate_codebook(features_rest, self.num_clusters_features_rest[sh_degree], *args, **kwargs)
-        return codebook, ids.reshape(-1, self.model._features_rest.shape[-1])
+        return codebook, ids.reshape(-1, model._features_rest.shape[-1])
 
-    def find_nearest_cluster_id_degree_features_rest(self, sh_degree, codebook: torch.Tensor):
-        features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
+    def find_nearest_cluster_id_degree_features_rest(self, model: GaussianModel, sh_degree, codebook: torch.Tensor):
+        features_rest_flatten = model._features_rest.detach().transpose(1, 2).flatten(0, 1)
         sh_idx_start, sh_idx_end = (sh_degree + 1) ** 2 - 1, (sh_degree + 2) ** 2 - 1
         features_rest = features_rest_flatten[:, sh_idx_start:sh_idx_end]
         ids = self.one_nearst(features_rest, codebook)
-        return ids.reshape(-1, self.model._features_rest.shape[-1])
+        return ids.reshape(-1, model._features_rest.shape[-1])
 
-    def produce_clusters_rotation_re(self, *args, **kwargs):
-        return self.generate_codebook(self.model.get_rotation.detach()[:, 0:1], self.num_clusters_rotation_re, *args, **kwargs)
+    def produce_clusters_rotation_re(self, model: GaussianModel, *args, **kwargs):
+        return self.generate_codebook(model.get_rotation.detach()[:, 0:1], self.num_clusters_rotation_re, *args, **kwargs)
 
-    def find_nearest_cluster_id_rotation_re(self, codebook: torch.Tensor):
-        return self.one_nearst(self.model.get_rotation.detach()[:, 0:1], codebook)
+    def find_nearest_cluster_id_rotation_re(self, model: GaussianModel, codebook: torch.Tensor):
+        return self.one_nearst(model.get_rotation.detach()[:, 0:1], codebook)
 
-    def produce_clusters_rotation_im(self, *args, **kwargs):
-        return self.generate_codebook(self.model.get_rotation.detach()[:, 1:], self.num_clusters_rotation_im, *args, **kwargs)
+    def produce_clusters_rotation_im(self, model: GaussianModel, *args, **kwargs):
+        return self.generate_codebook(model.get_rotation.detach()[:, 1:], self.num_clusters_rotation_im, *args, **kwargs)
 
-    def find_nearest_cluster_id_rotation_im(self, codebook: torch.Tensor):
-        return self.one_nearst(self.model.get_rotation.detach()[:, 1:], codebook)
+    def find_nearest_cluster_id_rotation_im(self, model: GaussianModel, codebook: torch.Tensor):
+        return self.one_nearst(model.get_rotation.detach()[:, 1:], codebook)
 
-    def produce_clusters_opacity(self, *args, **kwargs):
-        return self.generate_codebook(self.model._opacity.detach(), self.num_clusters_opacity, *args, **kwargs)
+    def produce_clusters_opacity(self, model: GaussianModel, *args, **kwargs):
+        return self.generate_codebook(model._opacity.detach(), self.num_clusters_opacity, *args, **kwargs)
 
-    def find_nearest_cluster_id_opacity(self, codebook: torch.Tensor):
-        return self.one_nearst(self.model._opacity.detach(), codebook)
+    def find_nearest_cluster_id_opacity(self, model: GaussianModel, codebook: torch.Tensor):
+        return self.one_nearst(model._opacity.detach(), codebook)
 
-    def produce_clusters_scaling(self, *args, **kwargs):
-        return self.generate_codebook(self.model.get_scaling.detach(), self.num_clusters_scaling, *args, **kwargs)
+    def produce_clusters_scaling(self, model: GaussianModel, *args, **kwargs):
+        return self.generate_codebook(model.get_scaling.detach(), self.num_clusters_scaling, *args, **kwargs)
 
-    def find_nearest_cluster_id_scaling(self, codebook: torch.Tensor):
-        return self.one_nearst(self.model.get_scaling.detach(), codebook)
+    def find_nearest_cluster_id_scaling(self, model: GaussianModel, codebook: torch.Tensor):
+        return self.one_nearst(model.get_scaling.detach(), codebook)
 
-    def produce_clusters(self, init_codebook_dict={}):
+    def produce_clusters(self, model: GaussianModel, init_codebook_dict={}):
         codebook_dict: Dict[str, torch.Tensor] = {}
         ids_dict: Dict[str, torch.Tensor] = {}
         init_codebook_dict = {
             "features_dc": None,
-            **{f"features_rest_{sh_degree}": None for sh_degree in range(self.model.max_sh_degree)},
+            **{f"features_rest_{sh_degree}": None for sh_degree in range(model.max_sh_degree)},
             "rotation_re": None,
             "rotation_im": None,
             "opacity": None,
@@ -140,35 +136,35 @@ class VectorQuantizer(AbstractQuantizer):
             **init_codebook_dict
         }
 
-        codebook_dict["features_dc"], ids_dict["features_dc"] = self.produce_clusters_features_dc(init_codebook=init_codebook_dict["features_dc"])
-        for sh_degree in range(self.model.max_sh_degree):
+        codebook_dict["features_dc"], ids_dict["features_dc"] = self.produce_clusters_features_dc(model, init_codebook=init_codebook_dict["features_dc"])
+        for sh_degree in range(model.max_sh_degree):
             codebook_dict[f"features_rest_{sh_degree}"], ids_dict[f"features_rest_{sh_degree}"] = self.produce_clusters_degree_features_rest(
-                sh_degree, init_codebook=init_codebook_dict[f"features_rest_{sh_degree}"]
+                model, sh_degree, init_codebook=init_codebook_dict[f"features_rest_{sh_degree}"]
             )
-        codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = self.produce_clusters_rotation_re(init_codebook=init_codebook_dict["rotation_re"])
-        codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = self.produce_clusters_rotation_im(init_codebook=init_codebook_dict["rotation_im"])
-        codebook_dict["opacity"], ids_dict[f"opacity"] = self.produce_clusters_opacity(init_codebook=init_codebook_dict["opacity"])
-        codebook_dict["scaling"], ids_dict[f"scaling"] = self.produce_clusters_scaling(init_codebook=init_codebook_dict["scaling"])
+        codebook_dict["rotation_re"], ids_dict[f"rotation_re"] = self.produce_clusters_rotation_re(model, init_codebook=init_codebook_dict["rotation_re"])
+        codebook_dict["rotation_im"], ids_dict[f"rotation_im"] = self.produce_clusters_rotation_im(model, init_codebook=init_codebook_dict["rotation_im"])
+        codebook_dict["opacity"], ids_dict[f"opacity"] = self.produce_clusters_opacity(model, init_codebook=init_codebook_dict["opacity"])
+        codebook_dict["scaling"], ids_dict[f"scaling"] = self.produce_clusters_scaling(model, init_codebook=init_codebook_dict["scaling"])
         return codebook_dict, ids_dict
 
-    def find_nearest_cluster_id(self, codebook_dict={}):
+    def find_nearest_cluster_id(self, model: GaussianModel, codebook_dict={}):
         ids_dict: Dict[str, torch.Tensor] = {}
-        ids_dict["features_dc"] = self.find_nearest_cluster_id_features_dc(codebook=codebook_dict["features_dc"])
-        for sh_degree in range(self.model.max_sh_degree):
+        ids_dict["features_dc"] = self.find_nearest_cluster_id_features_dc(model, codebook=codebook_dict["features_dc"])
+        for sh_degree in range(model.max_sh_degree):
             ids_dict[f"features_rest_{sh_degree}"] = self.find_nearest_cluster_id_degree_features_rest(
-                sh_degree, codebook=codebook_dict[f"features_rest_{sh_degree}"]
+                model, sh_degree, codebook=codebook_dict[f"features_rest_{sh_degree}"]
             )
-        ids_dict[f"rotation_re"] = self.find_nearest_cluster_id_rotation_re(codebook=codebook_dict["rotation_re"])
-        ids_dict[f"rotation_im"] = self.find_nearest_cluster_id_rotation_im(codebook=codebook_dict["rotation_im"])
-        ids_dict[f"opacity"] = self.find_nearest_cluster_id_opacity(codebook=codebook_dict["opacity"])
-        ids_dict[f"scaling"] = self.find_nearest_cluster_id_scaling(codebook=codebook_dict["scaling"])
+        ids_dict[f"rotation_re"] = self.find_nearest_cluster_id_rotation_re(model, codebook=codebook_dict["rotation_re"])
+        ids_dict[f"rotation_im"] = self.find_nearest_cluster_id_rotation_im(model, codebook=codebook_dict["rotation_im"])
+        ids_dict[f"opacity"] = self.find_nearest_cluster_id_opacity(model, codebook=codebook_dict["opacity"])
+        ids_dict[f"scaling"] = self.find_nearest_cluster_id_scaling(model, codebook=codebook_dict["scaling"])
         return ids_dict
 
     def apply_clustering(
             self,
+            model: GaussianModel,
             codebook_dict: Dict[str, torch.Tensor],
             ids_dict: Dict[str, torch.Tensor]):
-        model = self.model
         opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
         scaling = model.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
 
@@ -191,18 +187,17 @@ class VectorQuantizer(AbstractQuantizer):
             model._features_rest[...] = features_rest
         return model
 
-    def quantize(self, update_codebook=True) -> GaussianModel:
+    def quantize(self, model: GaussianModel, update_codebook=True) -> GaussianModel:
         if self._codebook_dict is {} or update_codebook:
-            codebook_dict, ids_dict = self.produce_clusters(self._codebook_dict)
+            codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
             self._codebook_dict = codebook_dict
         else:
             codebook_dict = self._codebook_dict
-            ids_dict = self.find_nearest_cluster_id(self._codebook_dict)
-        return self.apply_clustering(codebook_dict, ids_dict)
+            ids_dict = self.find_nearest_cluster_id(model, self._codebook_dict)
+        return self.apply_clustering(model, codebook_dict, ids_dict)
 
-    def save_quantized(self, ply_path: str):
-        model = self.model
-        codebook_dict, ids_dict = self.produce_clusters(self._codebook_dict)
+    def save_quantized(self, model: GaussianModel, ply_path: str):
+        codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
         self._codebook_dict = codebook_dict
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
@@ -250,10 +245,9 @@ class VectorQuantizer(AbstractQuantizer):
 
         PlyData([el, *cb]).write(ply_path)
 
-        return self.apply_clustering(codebook_dict, ids_dict)
+        return self.apply_clustering(model, codebook_dict, ids_dict)
 
-    def load_quantized(self, ply_path: str):
-        model = self.model
+    def load_quantized(self, model: GaussianModel, ply_path: str):
         plydata = PlyData.read(ply_path)
 
         ids_dict = {}
@@ -279,4 +273,4 @@ class VectorQuantizer(AbstractQuantizer):
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
         self._codebook_dict = codebook_dict
-        return self.apply_clustering(codebook_dict, ids_dict)
+        return self.apply_clustering(model, codebook_dict, ids_dict)

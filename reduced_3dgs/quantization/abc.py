@@ -39,4 +39,5 @@ class QuantizeTrainerWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
     def model(self) -> GaussianModel:
         if self.quantizate_from_iter <= self.curr_step < self.quantizate_until_iter and self.curr_step % self.quantizate_interval == 0:
             with torch.no_grad():
-                return self.quantizer.quantize(self.base_trainer.model, update_codebook=True)
+                return self.quantizer.quantize(self.base_trainer.model)
+        return self.base_trainer.model
