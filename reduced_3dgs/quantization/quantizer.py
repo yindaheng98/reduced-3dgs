@@ -188,7 +188,7 @@ class VectorQuantizer(AbstractQuantizer):
         return model
 
     def quantize(self, model: GaussianModel, update_codebook=True) -> GaussianModel:
-        if self._codebook_dict is {} or update_codebook:
+        if self._codebook_dict == {} or update_codebook:
             codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
             self._codebook_dict = codebook_dict
         else:
@@ -197,7 +197,7 @@ class VectorQuantizer(AbstractQuantizer):
         return self.apply_clustering(model, codebook_dict, ids_dict)
 
     def save_quantized(self, model: GaussianModel, ply_path: str):
-        if self._codebook_dict is {}:
+        if self._codebook_dict == {}:
             codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
             self._codebook_dict = codebook_dict
         else:
