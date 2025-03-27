@@ -8,13 +8,8 @@ from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
 
 class AbstractQuantizer(abc.ABC):
 
-    @property
     @abc.abstractmethod
-    def model(self) -> GaussianModel:
-        raise ValueError("Model is not set")
-
-    @abc.abstractmethod
-    def quantize(self):
+    def quantize(self, model: GaussianModel, update_codebook=True) -> GaussianModel:
         pass
 
     @abc.abstractmethod
@@ -42,8 +37,6 @@ class QuantizeTrainerWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
 
     @property
     def model(self) -> GaussianModel:
-        model = self.base_trainer.model
         if self.quantizate_from_iter <= self.curr_step < self.quantizate_until_iter and self.curr_step % self.quantizate_interval == 0:
             with torch.no_grad():
-                self.quantizer.quantize()
-        return model
+                return self.quantizer.quantize(self.base_trainer.model, update_codebook=True)
