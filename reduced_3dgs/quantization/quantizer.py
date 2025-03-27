@@ -87,7 +87,7 @@ class VectorQuantizer(AbstractQuantizer):
         return codebook, ids.unsqueeze(1)
 
     def find_nearest_cluster_id_features_dc(self, codebook: torch.Tensor):
-        return self.one_nearst(self.model._features_dc.detach().squeeze(1), codebook)
+        return self.one_nearst(self.model._features_dc.detach().squeeze(1), codebook).unsqueeze(1)
 
     def produce_clusters_degree_features_rest(self, sh_degree, *args, **kwargs):
         features_rest_flatten = self.model._features_rest.detach().transpose(1, 2).flatten(0, 1)
@@ -106,14 +106,26 @@ class VectorQuantizer(AbstractQuantizer):
     def produce_clusters_rotation_re(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_rotation.detach()[:, 0:1], self.num_clusters_rotation_re, *args, **kwargs)
 
+    def find_nearest_cluster_id_rotation_re(self, codebook: torch.Tensor):
+        return self.one_nearst(self.model.get_rotation.detach()[:, 0:1], codebook)
+
     def produce_clusters_rotation_im(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_rotation.detach()[:, 1:], self.num_clusters_rotation_im, *args, **kwargs)
+
+    def find_nearest_cluster_id_rotation_im(self, codebook: torch.Tensor):
+        return self.one_nearst(self.model.get_rotation.detach()[:, 1:], codebook)
 
     def produce_clusters_opacity(self, *args, **kwargs):
         return self.generate_codebook(self.model._opacity.detach(), self.num_clusters_opacity, *args, **kwargs)
 
+    def find_nearest_cluster_id_opacity(self, codebook: torch.Tensor):
+        return self.one_nearst(self.model._opacity.detach(), codebook)
+
     def produce_clusters_scaling(self, *args, **kwargs):
         return self.generate_codebook(self.model.get_scaling.detach(), self.num_clusters_scaling, *args, **kwargs)
+
+    def find_nearest_cluster_id_scaling(self, codebook: torch.Tensor):
+        return self.one_nearst(self.model.get_scaling.detach(), codebook)
 
     def produce_clusters(self, init_codebook_dict={}):
         codebook_dict: Dict[str, torch.Tensor] = {}
@@ -184,6 +196,7 @@ class VectorQuantizer(AbstractQuantizer):
             codebook_dict, ids_dict = self.produce_clusters(self._codebook_dict)
             self._codebook_dict = codebook_dict
         else:
+            codebook_dict = self._codebook_dict
             ids_dict = self.find_nearest_cluster_id(self._codebook_dict)
         return self.apply_clustering(codebook_dict, ids_dict)
 
