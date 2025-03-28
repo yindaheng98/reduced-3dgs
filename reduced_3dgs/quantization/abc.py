@@ -14,7 +14,7 @@ class AbstractQuantizer(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def dequantize(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor], codebook_dict: Dict[str, torch.Tensor]) -> GaussianModel:
+    def dequantize(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor], codebook_dict: Dict[str, torch.Tensor], xyz: torch.Tensor = None, replace=False) -> GaussianModel:
         pass
 
     @abc.abstractmethod

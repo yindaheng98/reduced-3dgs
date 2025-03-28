@@ -2,6 +2,7 @@ import math
 import os
 from typing import Dict, Tuple
 import torch
+import torch.nn as nn
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans as KMeans
 from gaussian_splatting import GaussianModel
@@ -160,7 +161,7 @@ class VectorQuantizer(AbstractQuantizer):
         ids_dict[f"scaling"] = self.find_nearest_cluster_id_scaling(model, codebook=codebook_dict["scaling"])
         return ids_dict
 
-    def dequantize(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor], codebook_dict: Dict[str, torch.Tensor]) -> GaussianModel:
+    def dequantize(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor], codebook_dict: Dict[str, torch.Tensor], xyz: torch.Tensor = None, replace=False) -> GaussianModel:
         opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
         scaling = model.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
 
@@ -176,11 +177,22 @@ class VectorQuantizer(AbstractQuantizer):
         features_rest = torch.cat(features_rest, dim=2).transpose(1, 2)
 
         with torch.no_grad():
-            model._opacity[...] = opacity
-            model._scaling[...] = scaling
-            model._rotation[...] = rotation
-            model._features_dc[...] = features_dc
-            model._features_rest[...] = features_rest
+            if replace:
+                if xyz is not None:
+                    model._xyz = nn.Parameter(xyz)
+                model._opacity = nn.Parameter(opacity)
+                model._scaling = nn.Parameter(scaling)
+                model._rotation = nn.Parameter(rotation)
+                model._features_dc = nn.Parameter(features_dc)
+                model._features_rest = nn.Parameter(features_rest)
+            else:
+                if xyz is not None:
+                    model._xyz[...] = xyz
+                model._opacity[...] = opacity
+                model._scaling[...] = scaling
+                model._rotation[...] = rotation
+                model._features_dc[...] = features_dc
+                model._features_rest[...] = features_rest
         return model
 
     def quantize(self, model: GaussianModel, update_codebook=True) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
@@ -267,4 +279,9 @@ class VectorQuantizer(AbstractQuantizer):
 
         self._codebook_dict = codebook_dict
 
-        return self.dequantize(model, ids_dict, codebook_dict)
+        xyz = torch.stack([
+            torch.tensor(elements["x"].copy(), **kwargs),
+            torch.tensor(elements["y"].copy(), **kwargs),
+            torch.tensor(elements["z"].copy(), **kwargs),
+        ], dim=1)
+        return self.dequantize(model, ids_dict, codebook_dict, xyz=xyz, replace=True)
