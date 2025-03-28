@@ -1,4 +1,5 @@
 import abc
+from typing import Dict, Tuple
 
 import torch
 
@@ -9,7 +10,11 @@ from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper
 class AbstractQuantizer(abc.ABC):
 
     @abc.abstractmethod
-    def quantize(self, model: GaussianModel, update_codebook=True) -> GaussianModel:
+    def quantize(self, model: GaussianModel, update_codebook=True) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+        pass
+
+    @abc.abstractmethod
+    def dequantize(self, model: GaussianModel, codebook_dict: Dict[str, torch.Tensor], ids_dict: Dict[str, torch.Tensor]) -> GaussianModel:
         pass
 
     @abc.abstractmethod
@@ -39,5 +44,6 @@ class QuantizeTrainerWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
     def model(self) -> GaussianModel:
         if self.quantizate_from_iter <= self.curr_step < self.quantizate_until_iter and self.curr_step % self.quantizate_interval == 0:
             with torch.no_grad():
-                return self.quantizer.quantize(self.base_trainer.model)
+                ids_dict, codebook_dict = self.quantizer.quantize(self.base_trainer.model, update_codebook=True)
+                return self.quantizer.dequantize(self.base_trainer.model, ids_dict, codebook_dict)
         return self.base_trainer.model

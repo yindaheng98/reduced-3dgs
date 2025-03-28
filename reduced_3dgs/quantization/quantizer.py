@@ -1,6 +1,6 @@
 import math
 import os
-from typing import Dict
+from typing import Dict, Tuple
 import torch
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans as KMeans
@@ -160,11 +160,7 @@ class VectorQuantizer(AbstractQuantizer):
         ids_dict[f"scaling"] = self.find_nearest_cluster_id_scaling(model, codebook=codebook_dict["scaling"])
         return ids_dict
 
-    def apply_clustering(
-            self,
-            model: GaussianModel,
-            codebook_dict: Dict[str, torch.Tensor],
-            ids_dict: Dict[str, torch.Tensor]):
+    def dequantize(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor], codebook_dict: Dict[str, torch.Tensor]) -> GaussianModel:
         opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
         scaling = model.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
 
@@ -187,22 +183,17 @@ class VectorQuantizer(AbstractQuantizer):
             model._features_rest[...] = features_rest
         return model
 
-    def quantize(self, model: GaussianModel, update_codebook=True) -> GaussianModel:
+    def quantize(self, model: GaussianModel, update_codebook=True) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
         if self._codebook_dict == {} or update_codebook:
             codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
             self._codebook_dict = codebook_dict
         else:
             codebook_dict = self._codebook_dict
             ids_dict = self.find_nearest_cluster_id(model, self._codebook_dict)
-        return self.apply_clustering(model, codebook_dict, ids_dict)
+        return ids_dict, codebook_dict
 
     def save_quantized(self, model: GaussianModel, ply_path: str):
-        if self._codebook_dict == {}:
-            codebook_dict, ids_dict = self.produce_clusters(model, self._codebook_dict)
-            self._codebook_dict = codebook_dict
-        else:
-            ids_dict = self.find_nearest_cluster_id(model, self._codebook_dict)
-            codebook_dict = self._codebook_dict
+        ids_dict, codebook_dict = self.quantize(model, update_codebook=False)
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -249,8 +240,6 @@ class VectorQuantizer(AbstractQuantizer):
 
         PlyData([el, *cb]).write(ply_path)
 
-        return self.apply_clustering(model, codebook_dict, ids_dict)
-
     def load_quantized(self, model: GaussianModel, ply_path: str):
         plydata = PlyData.read(ply_path)
 
@@ -277,4 +266,3 @@ class VectorQuantizer(AbstractQuantizer):
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
         self._codebook_dict = codebook_dict
-        return self.apply_clustering(model, codebook_dict, ids_dict)
