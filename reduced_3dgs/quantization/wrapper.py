@@ -13,9 +13,9 @@ def VectorQuantizeTrainerWrapper(
         num_clusters_scaling=None,
         num_clusters_features_dc=None,
         num_clusters_features_rest=[],
-        quantizate_from_iter=5000,
-        quantizate_until_iter=30000,
-        quantizate_interval=500,
+        quantize_from_iter=5000,
+        quantize_until_iter=30000,
+        quantize_interval=1000,
         treat_as_zero=1e-8,
 ):
     return QuantizeTrainerWrapper(
@@ -29,7 +29,10 @@ def VectorQuantizeTrainerWrapper(
             num_clusters_features_rest=num_clusters_features_rest,
             treat_as_zero=treat_as_zero,
         ),
-        quantizate_from_iter, quantizate_until_iter, quantizate_interval
+        quantize_from_iter=quantize_from_iter,
+        quantize_until_iter=quantize_until_iter,
+        quantize_interval=quantize_interval,
+
     )
 
 
@@ -43,22 +46,22 @@ def BaseVectorQuantizeTrainer(
         num_clusters_scaling=None,
         num_clusters_features_dc=None,
         num_clusters_features_rest=[],
-        quantizate_from_iter=5000,
-        quantizate_until_iter=30000,
-        quantizate_interval=1000,
+        quantize_from_iter=5000,
+        quantize_until_iter=30000,
+        quantize_interval=1000,
         treat_as_zero=1e-8,
         *args, **kwargs):
-    return QuantizeTrainerWrapper(
+    return VectorQuantizeTrainerWrapper(
         BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
-        ExcludeZeroSHQuantizer(
-            num_clusters=num_clusters,
-            num_clusters_rotation_re=num_clusters_rotation_re,
-            num_clusters_rotation_im=num_clusters_rotation_im,
-            num_clusters_opacity=num_clusters_opacity,
-            num_clusters_scaling=num_clusters_scaling,
-            num_clusters_features_dc=num_clusters_features_dc,
-            num_clusters_features_rest=num_clusters_features_rest,
-            treat_as_zero=treat_as_zero,
-        ),
-        quantizate_from_iter, quantizate_until_iter, quantizate_interval
+        num_clusters=num_clusters,
+        num_clusters_rotation_re=num_clusters_rotation_re,
+        num_clusters_rotation_im=num_clusters_rotation_im,
+        num_clusters_opacity=num_clusters_opacity,
+        num_clusters_scaling=num_clusters_scaling,
+        num_clusters_features_dc=num_clusters_features_dc,
+        num_clusters_features_rest=num_clusters_features_rest,
+        treat_as_zero=treat_as_zero,
+        quantize_from_iter=quantize_from_iter,
+        quantize_until_iter=quantize_until_iter,
+        quantize_interval=quantize_interval,
     )

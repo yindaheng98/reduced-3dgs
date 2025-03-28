@@ -51,9 +51,9 @@ def prepare_quantizer(
         num_clusters_features_dc=None,
         num_clusters_features_rest=[],
 
-        quantizate_from_iter=5000,
-        quantizate_until_iter=30000,
-        quantizate_interval=1000,
+        quantize_from_iter=5000,
+        quantize_until_iter=30000,
+        quantize_interval=1000,
         **configs):
     trainer = VectorQuantizeTrainerWrapper(
         base_constructor(
@@ -71,9 +71,9 @@ def prepare_quantizer(
         num_clusters_features_dc=num_clusters_features_dc,
         num_clusters_features_rest=num_clusters_features_rest,
 
-        quantizate_from_iter=quantizate_from_iter,
-        quantizate_until_iter=quantizate_until_iter,
-        quantizate_interval=quantizate_interval,
+        quantize_from_iter=quantize_from_iter,
+        quantize_until_iter=quantize_until_iter,
+        quantize_interval=quantize_interval,
     )
     if load_quantized:
         trainer.quantizer.load_quantized(load_quantized)
