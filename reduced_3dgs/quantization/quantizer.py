@@ -240,7 +240,7 @@ class VectorQuantizer(AbstractQuantizer):
 
         PlyData([el, *cb]).write(ply_path)
 
-    def load_quantized(self, model: GaussianModel, ply_path: str):
+    def load_quantized(self, model: GaussianModel, ply_path: str) -> GaussianModel:
         plydata = PlyData.read(ply_path)
 
         ids_dict = {}
@@ -266,3 +266,5 @@ class VectorQuantizer(AbstractQuantizer):
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
 
         self._codebook_dict = codebook_dict
+
+        return self.dequantize(model, ids_dict, codebook_dict)

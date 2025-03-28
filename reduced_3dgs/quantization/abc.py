@@ -22,7 +22,7 @@ class AbstractQuantizer(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def load_quantized(self, model: GaussianModel, ply_path: str, codebook_path: str):
+    def load_quantized(self, model: GaussianModel, ply_path: str, codebook_path: str) -> GaussianModel:
         pass
 
 
