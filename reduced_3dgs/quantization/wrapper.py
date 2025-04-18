@@ -38,7 +38,7 @@ def VectorQuantizeTrainerWrapper(
 
 def BaseVectorQuantizeTrainer(
     model: GaussianModel,
-    spatial_lr_scale: float,
+    scene_extent: float,
         num_clusters=256,
         num_clusters_rotation_re=None,
         num_clusters_rotation_im=None,
@@ -52,7 +52,7 @@ def BaseVectorQuantizeTrainer(
         treat_as_zero=1e-8,
         *args, **kwargs):
     return VectorQuantizeTrainerWrapper(
-        BaseTrainer(model, spatial_lr_scale, *args, **kwargs),
+        BaseTrainer(model, scene_extent, *args, **kwargs),
         num_clusters=num_clusters,
         num_clusters_rotation_re=num_clusters_rotation_re,
         num_clusters_rotation_im=num_clusters_rotation_im,
