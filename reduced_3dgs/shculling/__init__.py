@@ -1,2 +1,2 @@
 from .gaussian_model import VariableSHGaussianModel
-from .trainer import SHCuller, SHCullingTrainer
+from .trainer import SHCuller, SHCullingTrainerWrapper, SHCullingTrainer

@@ -104,6 +104,24 @@ class SHCuller(TrainerWrapper):
         return ret
 
 
+def SHCullingTrainerWrapper(
+    base_trainer_constructor,
+        model: VariableSHGaussianModel,
+        scene_extent: float,
+        dataset: CameraDataset,
+        cdist_threshold: float = 6,
+        std_threshold: float = 0.04,
+        cull_at_steps=[15000],
+        *args, **kwargs):
+    return SHCuller(
+        base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
+        dataset,
+        cdist_threshold=cdist_threshold,
+        std_threshold=std_threshold,
+        cull_at_steps=cull_at_steps,
+    )
+
+
 def SHCullingTrainer(
     model: VariableSHGaussianModel,
         scene_extent: float,
@@ -112,8 +130,8 @@ def SHCullingTrainer(
         std_threshold: float = 0.04,
         cull_at_steps=[15000],
         *args, **kwargs):
-    return SHCuller(
-        Trainer(model, scene_extent, *args, **kwargs),
+    return SHCullingTrainerWrapper(
+        lambda model, scene_extent, dataset, *args, **kwargs: Trainer(model, scene_extent, *args, **kwargs),
         dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,

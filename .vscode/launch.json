@@ -55,6 +55,7 @@
                 "30000",
                 "--mode",
                 "densify-prune-shculling",
+                "--with_depth",
                 "--quantize",
                 "-onum_clusters_scaling=1024",
                 "-onum_clusters_rotation_re=256",
@@ -62,7 +63,6 @@
                 "-onum_clusters_opacity=256",
                 "-onum_clusters_features_dc=512",
                 "-onum_clusters_features_rest=[256]",
-                "--with_depth",
             ]
         },
         {

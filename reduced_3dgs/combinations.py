@@ -1,7 +1,7 @@
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
-from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetter, CameraOptimizer
-from .shculling import VariableSHGaussianModel, SHCuller, SHCullingTrainer
+from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetter, CameraTrainerWrapper
+from .shculling import VariableSHGaussianModel, SHCuller, SHCullingTrainerWrapper, SHCullingTrainer
 from .pruning import PruningTrainer, PrunerInDensifyTrainer
 
 
@@ -24,30 +24,12 @@ def OpacityResetPrunerInDensifyTrainer(
     )
 
 
-def _SHCullingTrainerWrapper(
-    base_trainer_constructor,
-        model: VariableSHGaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
-        *args, **kwargs):
-    return SHCuller(
-        base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
-        dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
-    )
-
-
 def SHCullingDensifyTrainer(
     model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
         *args, **kwargs):
-    return _SHCullingTrainerWrapper(
+    return SHCullingTrainerWrapper(
         lambda model, scene_extent, dataset, *args, **kwargs: OpacityResetDensificationTrainer(model, scene_extent, *args, **kwargs),
         model, scene_extent, dataset,
         *args, **kwargs
@@ -59,7 +41,7 @@ def SHCullingPruneTrainer(
         scene_extent: float,
         dataset: CameraDataset,
         *args, **kwargs):
-    return _SHCullingTrainerWrapper(
+    return SHCullingTrainerWrapper(
         PruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -71,7 +53,7 @@ def SHCullingPruningDensifyTrainer(
         scene_extent: float,
         dataset: CameraDataset,
         *args, **kwargs):
-    return _SHCullingTrainerWrapper(
+    return SHCullingTrainerWrapper(
         OpacityResetPrunerInDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -83,48 +65,12 @@ class CameraTrainableVariableSHGaussianModel(VariableSHGaussianModel):
         return CameraTrainableGaussianModel.forward(self, camera)
 
 
-def _CameraTrainerWrapper(
-    base_trainer_constructor,
-        model: CameraTrainableGaussianModel,
-        scene_extent: float,
-        dataset: TrainableCameraDataset,
-        camera_position_lr_init=0.00016,
-        camera_position_lr_final=0.0000016,
-        camera_position_lr_delay_mult=0.01,
-        camera_position_lr_max_steps=30_000,
-        camera_rotation_lr_init=0.0001,
-        camera_rotation_lr_final=0.000001,
-        camera_rotation_lr_delay_mult=0.01,
-        camera_rotation_lr_max_steps=30_000,
-        camera_exposure_lr_init=0.001,
-        camera_exposure_lr_final=0.0001,
-        camera_exposure_lr_delay_mult=0.01,
-        camera_exposure_lr_max_steps=30_000,
-        *args, **kwargs):
-    return CameraOptimizer(
-        base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
-        dataset, scene_extent,
-        camera_position_lr_init=camera_position_lr_init,
-        camera_position_lr_final=camera_position_lr_final,
-        camera_position_lr_delay_mult=camera_position_lr_delay_mult,
-        camera_position_lr_max_steps=camera_position_lr_max_steps,
-        camera_rotation_lr_init=camera_rotation_lr_init,
-        camera_rotation_lr_final=camera_rotation_lr_final,
-        camera_rotation_lr_delay_mult=camera_rotation_lr_delay_mult,
-        camera_rotation_lr_max_steps=camera_rotation_lr_max_steps,
-        camera_exposure_lr_init=camera_exposure_lr_init,
-        camera_exposure_lr_final=camera_exposure_lr_final,
-        camera_exposure_lr_delay_mult=camera_exposure_lr_delay_mult,
-        camera_exposure_lr_max_steps=camera_exposure_lr_max_steps,
-    )
-
-
 def CameraSHCullingTrainer(
         model: CameraTrainableVariableSHGaussianModel,
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
-    return _CameraTrainerWrapper(
+    return CameraTrainerWrapper(
         SHCullingTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -136,7 +82,7 @@ def CameraPruningTrainer(
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
-    return _CameraTrainerWrapper(
+    return CameraTrainerWrapper(
         PruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -148,7 +94,7 @@ def CameraOpacityResetPrunerInDensifyTrainer(
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
-    return _CameraTrainerWrapper(
+    return CameraTrainerWrapper(
         OpacityResetPrunerInDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -160,7 +106,7 @@ def CameraSHCullingDensifyTrainer(
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
-    return _CameraTrainerWrapper(
+    return CameraTrainerWrapper(
         SHCullingDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -172,7 +118,7 @@ def CameraSHCullingPruneTrainer(
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
-    return _CameraTrainerWrapper(
+    return CameraTrainerWrapper(
         SHCullingPruneTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
@@ -184,7 +130,7 @@ def CameraSHCullingPruningDensifyTrainer(
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
-    return _CameraTrainerWrapper(
+    return CameraTrainerWrapper(
         SHCullingPruningDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
