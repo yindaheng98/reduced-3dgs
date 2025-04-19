@@ -1,8 +1,8 @@
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetter, CameraOptimizer
-from .shculling import VariableSHGaussianModel, SHCuller, BaseSHCullingTrainer
-from .pruning import BasePruningTrainer, BasePrunerInDensifyTrainer
+from .shculling import VariableSHGaussianModel, SHCuller, SHCullingTrainer
+from .pruning import PruningTrainer, PrunerInDensifyTrainer
 
 
 def OpacityResetPrunerInDensifyTrainer(
@@ -14,7 +14,7 @@ def OpacityResetPrunerInDensifyTrainer(
         opacity_reset_interval=3000,
         *args, **kwargs):
     return OpacityResetter(
-        BasePrunerInDensifyTrainer(
+        PrunerInDensifyTrainer(
             model, scene_extent, dataset,
             *args, **kwargs
         ),
@@ -60,7 +60,7 @@ def SHCullingPruneTrainer(
         dataset: CameraDataset,
         *args, **kwargs):
     return _SHCullingTrainerWrapper(
-        BasePruningTrainer,
+        PruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -125,7 +125,7 @@ def CameraSHCullingTrainer(
         dataset: TrainableCameraDataset,
         *args, **kwargs):
     return _CameraTrainerWrapper(
-        BaseSHCullingTrainer,
+        SHCullingTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -137,7 +137,7 @@ def CameraPruningTrainer(
         dataset: TrainableCameraDataset,
         *args, **kwargs):
     return _CameraTrainerWrapper(
-        BasePruningTrainer,
+        PruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )

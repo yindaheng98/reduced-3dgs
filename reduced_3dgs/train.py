@@ -9,18 +9,18 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset, TrainableCameraDataset
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, ColmapTrainableCameraDataset, colmap_init
-from gaussian_splatting.trainer import AbstractTrainer, DepthCameraTrainerWrapper
+from gaussian_splatting.trainer import AbstractTrainer
 from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
-from reduced_3dgs.shculling import VariableSHGaussianModel, BaseSHCullingTrainer
-from reduced_3dgs.pruning import BasePruningTrainer
+from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
+from reduced_3dgs.pruning import PruningTrainer
 from reduced_3dgs.combinations import OpacityResetPrunerInDensifyTrainer, SHCullingDensifyTrainer, SHCullingPruneTrainer, SHCullingPruningDensifyTrainer
 from reduced_3dgs.combinations import CameraTrainableVariableSHGaussianModel, CameraSHCullingTrainer, CameraPruningTrainer
 from reduced_3dgs.combinations import CameraOpacityResetPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruneTrainer, CameraSHCullingPruningDensifyTrainer
 
 
 basemodes = {
-    "shculling": BaseSHCullingTrainer,
-    "pruning": BasePruningTrainer,
+    "shculling": SHCullingTrainer,
+    "pruning": PruningTrainer,
     "densify-pruning": OpacityResetPrunerInDensifyTrainer,
     "densify-shculling": SHCullingDensifyTrainer,
     "prune-shculling": SHCullingPruneTrainer,
@@ -33,20 +33,6 @@ cameramodes = {
     "camera-densify-shculling": CameraSHCullingDensifyTrainer,
     "camera-prune-shculling": CameraSHCullingPruneTrainer,
     "camera-densify-prune-shculling": CameraSHCullingPruningDensifyTrainer,
-}
-
-
-def depth_warp_trainer(base_constructor):
-    def wrapped_trainer(gaussians: GaussianModel, scene_extent: float, dataset: CameraDataset, **configs):
-        return DepthCameraTrainerWrapper(base_constructor, model=gaussians, dataset=dataset, scene_extent=scene_extent, **configs)
-    return wrapped_trainer
-
-
-depthmodes = {
-    k: depth_warp_trainer(v) for k, v in basemodes.items()
-}
-depthcameramodes = {
-    k: depth_warp_trainer(v) for k, v in cameramodes.items()
 }
 
 
@@ -99,7 +85,7 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
     if mode in basemodes:
         gaussians = VariableSHGaussianModel(sh_degree).to(device)
         gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-        dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
+        dataset = (JSONCameraDataset(load_camera, load_depth=with_depth) if load_camera else ColmapCameraDataset(source, load_depth=with_depth)).to(device)
         if quantize:
             trainer, quantizer = prepare_quantizer(
                 gaussians,
@@ -110,7 +96,7 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
                 **configs
             )
         else:
-            trainer = (basemodes if not with_depth else depthmodes)[mode](
+            trainer = basemodes[mode](
                 gaussians,
                 scene_extent=dataset.scene_extent(),
                 dataset=dataset,
@@ -119,7 +105,7 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
     elif mode in cameramodes:
         gaussians = CameraTrainableVariableSHGaussianModel(sh_degree).to(device)
         gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-        dataset = (TrainableCameraDataset.from_json(load_camera) if load_camera else ColmapTrainableCameraDataset(source)).to(device)
+        dataset = (TrainableCameraDataset.from_json(load_camera, load_depth=with_depth) if load_camera else ColmapTrainableCameraDataset(source, load_depth=with_depth)).to(device)
         if quantize:
             trainer, quantizer = prepare_quantizer(
                 gaussians,
@@ -130,7 +116,7 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
                 **configs
             )
         else:
-            trainer = (cameramodes if not with_depth else depthcameramodes)[mode](
+            trainer = cameramodes[mode](
                 gaussians,
                 scene_extent=dataset.scene_extent(),
                 dataset=dataset,

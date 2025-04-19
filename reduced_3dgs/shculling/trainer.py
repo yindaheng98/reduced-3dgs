@@ -2,7 +2,7 @@ from typing import List
 import torch
 
 from gaussian_splatting import Camera
-from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, BaseTrainer
+from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, Trainer
 from gaussian_splatting.dataset import CameraDataset
 from reduced_3dgs.diff_gaussian_rasterization._C import calculate_colours_variance
 
@@ -104,7 +104,7 @@ class SHCuller(TrainerWrapper):
         return ret
 
 
-def BaseSHCullingTrainer(
+def SHCullingTrainer(
     model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
@@ -113,7 +113,7 @@ def BaseSHCullingTrainer(
         cull_at_steps=[15000],
         *args, **kwargs):
     return SHCuller(
-        BaseTrainer(model, scene_extent, *args, **kwargs),
+        Trainer(model, scene_extent, *args, **kwargs),
         dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,

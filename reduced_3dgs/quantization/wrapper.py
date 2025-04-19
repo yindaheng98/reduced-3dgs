@@ -1,5 +1,5 @@
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
+from gaussian_splatting.trainer import AbstractTrainer, Trainer
 from .abc import QuantizeTrainerWrapper
 from .exclude_zeros import ExcludeZeroSHQuantizer
 
@@ -36,7 +36,7 @@ def VectorQuantizeTrainerWrapper(
     )
 
 
-def BaseVectorQuantizeTrainer(
+def VectorQuantizeTrainer(
     model: GaussianModel,
     scene_extent: float,
         num_clusters=256,
@@ -52,7 +52,7 @@ def BaseVectorQuantizeTrainer(
         treat_as_zero=1e-8,
         *args, **kwargs):
     return VectorQuantizeTrainerWrapper(
-        BaseTrainer(model, scene_extent, *args, **kwargs),
+        Trainer(model, scene_extent, *args, **kwargs),
         num_clusters=num_clusters,
         num_clusters_rotation_re=num_clusters_rotation_re,
         num_clusters_rotation_im=num_clusters_rotation_im,
