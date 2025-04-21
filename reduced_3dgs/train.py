@@ -10,6 +10,7 @@ from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset, Trainab
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset, ColmapTrainableCameraDataset, colmap_init
 from gaussian_splatting.trainer import AbstractTrainer
+from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
 from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
 from reduced_3dgs.pruning import PruningTrainer
@@ -80,7 +81,7 @@ def prepare_quantizer(
     return trainer, trainer.quantizer
 
 
-def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, with_depth=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
+def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, with_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
     quantizer = None
     if mode in basemodes:
         gaussians = VariableSHGaussianModel(sh_degree).to(device)
@@ -94,6 +95,9 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
         modes = cameramodes
     else:
         raise ValueError(f"Unknown mode: {mode}")
+    constructor = modes[mode]
+    if with_scale_reg:
+        constructor = lambda *args, **kwargs: ScaleRegularizeTrainerWrapper(modes[mode], *args, **kwargs)
     if quantize:
         trainer, quantizer = prepare_quantizer(
             gaussians,
@@ -104,7 +108,7 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
             **configs
         )
     else:
-        trainer = modes[mode](
+        trainer = constructor(
             gaussians,
             scene_extent=dataset.scene_extent(),
             dataset=dataset,
@@ -167,6 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--quantize", action='store_true')
     parser.add_argument("--with_depth", action='store_true')
+    parser.add_argument("--with_scale_reg", action="store_true")
     parser.add_argument("--load_quantized", default=None, type=str)
     parser.add_argument("--mode", choices=list(basemodes.keys()) + list(cameramodes.keys()), default="densify-prune-shculling")
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7000, 30000])
@@ -180,7 +185,7 @@ if __name__ == "__main__":
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
     dataset, gaussians, trainer, quantizer = prepare_training(
         sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
-        load_ply=args.load_ply, load_camera=args.load_camera, with_depth=args.with_depth,
+        load_ply=args.load_ply, load_camera=args.load_camera, with_depth=args.with_depth, with_scale_reg=args.with_scale_reg,
         quantize=args.quantize, load_quantized=args.load_quantized, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
     torch.cuda.empty_cache()

@@ -18,6 +18,8 @@
                 "--mode",
                 "densify-prune-shculling",
                 "--with_depth",
+                "--with_scale_reg",
+                "--empty_cache_every_step",
             ]
         },
         {
@@ -37,6 +39,8 @@
                 "--mode",
                 "camera-densify-prune-shculling",
                 "--with_depth",
+                "--with_scale_reg",
+                "--empty_cache_every_step",
             ]
         },
         {
@@ -56,6 +60,8 @@
                 "--mode",
                 "densify-prune-shculling",
                 "--with_depth",
+                "--with_scale_reg",
+                "--empty_cache_every_step",
                 "--quantize",
                 "-onum_clusters_scaling=1024",
                 "-onum_clusters_rotation_re=256",
