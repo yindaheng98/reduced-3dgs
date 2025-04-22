@@ -132,8 +132,9 @@ def SHCullingTrainer(
         *args, **kwargs):
     return SHCullingTrainerWrapper(
         lambda model, scene_extent, dataset, *args, **kwargs: Trainer(model, scene_extent, *args, **kwargs),
-        dataset,
+        model, scene_extent, dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,
         cull_at_steps=cull_at_steps,
+        *args, **kwargs,
     )
