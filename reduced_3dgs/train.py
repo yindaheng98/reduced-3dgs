@@ -81,17 +81,17 @@ def prepare_quantizer(
     return trainer, trainer.quantizer
 
 
-def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, with_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
+def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, load_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
     quantizer = None
     if mode in basemodes:
         gaussians = VariableSHGaussianModel(sh_degree).to(device)
         gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-        dataset = (JSONCameraDataset(load_camera, load_depth=with_depth) if load_camera else ColmapCameraDataset(source, load_depth=with_depth)).to(device)
+        dataset = (JSONCameraDataset(load_camera, load_depth=load_depth) if load_camera else ColmapCameraDataset(source, load_depth=load_depth)).to(device)
         modes = basemodes
     elif mode in cameramodes:
         gaussians = CameraTrainableVariableSHGaussianModel(sh_degree).to(device)
         gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-        dataset = (TrainableCameraDataset.from_json(load_camera, load_depth=with_depth) if load_camera else ColmapTrainableCameraDataset(source, load_depth=with_depth)).to(device)
+        dataset = (TrainableCameraDataset.from_json(load_camera, load_depth=load_depth) if load_camera else ColmapTrainableCameraDataset(source, load_depth=load_depth)).to(device)
         modes = cameramodes
     else:
         raise ValueError(f"Unknown mode: {mode}")
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--load_ply", default=None, type=str)
     parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--quantize", action='store_true')
-    parser.add_argument("--with_depth", action='store_true')
+    parser.add_argument("--no_depth_data", action='store_true')
     parser.add_argument("--with_scale_reg", action="store_true")
     parser.add_argument("--load_quantized", default=None, type=str)
     parser.add_argument("--mode", choices=list(basemodes.keys()) + list(cameramodes.keys()), default="densify-prune-shculling")
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
     dataset, gaussians, trainer, quantizer = prepare_training(
         sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
-        load_ply=args.load_ply, load_camera=args.load_camera, with_depth=args.with_depth, with_scale_reg=args.with_scale_reg,
+        load_ply=args.load_ply, load_camera=args.load_camera, load_depth=not args.no_depth_data, with_scale_reg=args.with_scale_reg,
         quantize=args.quantize, load_quantized=args.load_quantized, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
     torch.cuda.empty_cache()

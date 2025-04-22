@@ -8,12 +8,12 @@ from .trainer import BasePruningTrainer, BasePrunerInDensifyTrainer
 # Camera trainer
 
 
-def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BasePruningTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
+def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, depth_from_iter=500, **kwargs):
+    return DepthTrainerWrapper(BasePruningTrainer, model, scene_extent, *args, dataset=dataset, depth_from_iter=depth_from_iter, **kwargs)
 
 
-def DepthPrunerInDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BasePrunerInDensifyTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
+def DepthPrunerInDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, depth_from_iter=500, **kwargs):
+    return DepthTrainerWrapper(BasePrunerInDensifyTrainer, model, scene_extent, *args, dataset=dataset, depth_from_iter=depth_from_iter, **kwargs)
 
 
 PruningTrainer = DepthPruningTrainer
