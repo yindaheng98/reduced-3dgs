@@ -5,6 +5,32 @@ from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper, SHCulli
 from .pruning import PruningTrainer, PrunerInDensifyTrainer
 
 
+def OpacityResetPruningTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        dataset: CameraDataset,
+        opacity_reset_from_iter=5000,
+        opacity_reset_until_iter=15000,
+        opacity_reset_interval=1000,
+        prune_from_iter=1000,
+        prune_interval=1000,
+        mercy_type='redundancy_opacity_opacity',
+        *args, **kwargs):
+    return OpacityResetter(
+        PruningTrainer(
+            model, scene_extent, dataset,
+            *args,
+            prune_from_iter=prune_from_iter,
+            prune_interval=prune_interval,
+            mercy_type=mercy_type,
+            **kwargs
+        ),
+        opacity_reset_from_iter=opacity_reset_from_iter,
+        opacity_reset_until_iter=opacity_reset_until_iter,
+        opacity_reset_interval=opacity_reset_interval
+    )
+
+
 def OpacityResetPrunerInDensifyTrainer(
         model: GaussianModel,
         scene_extent: float,
@@ -42,7 +68,7 @@ def SHCullingPruneTrainer(
         dataset: CameraDataset,
         *args, **kwargs):
     return SHCullingTrainerWrapper(
-        PruningTrainer,
+        OpacityResetPruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -83,7 +109,7 @@ def CameraPruningTrainer(
         dataset: TrainableCameraDataset,
         *args, **kwargs):
     return CameraTrainerWrapper(
-        PruningTrainer,
+        OpacityResetPruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
