@@ -1,8 +1,13 @@
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
-from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetter, CameraTrainerWrapper
-from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper, SHCullingTrainer
+from gaussian_splatting.trainer import OpacityResetDensificationTrainer
+# from gaussian_splatting.trainer import BaseOpacityResetDensificationTrainer as OpacityResetDensificationTrainer
+from gaussian_splatting.trainer import OpacityResetter, CameraTrainerWrapper
+from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper
+from .shculling import SHCullingTrainer
+# from .shculling import BaseSHCullingTrainer as SHCullingTrainer
 from .pruning import PruningTrainer, PrunerInDensifyTrainer
+# from .pruning import BasePruningTrainer as PruningTrainer, BasePrunerInDensifyTrainer as PrunerInDensifyTrainer
 
 depth_local_relative_kernel_radius = 16
 depth_local_relative_stride = depth_local_relative_kernel_radius // 2
