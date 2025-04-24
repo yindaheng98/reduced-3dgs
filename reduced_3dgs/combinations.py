@@ -9,11 +9,11 @@ def OpacityResetPruningTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        opacity_reset_from_iter=5000,
+        opacity_reset_from_iter=1000,
         opacity_reset_until_iter=15000,
-        opacity_reset_interval=1000,
+        opacity_reset_interval=500,
         prune_from_iter=1000,
-        prune_interval=1000,
+        prune_interval=500,
         mercy_type='redundancy_opacity_opacity',
         *args, **kwargs):
     return OpacityResetter(
