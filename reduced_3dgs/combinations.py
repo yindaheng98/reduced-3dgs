@@ -4,6 +4,11 @@ from gaussian_splatting.trainer import OpacityResetDensificationTrainer, Opacity
 from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper, SHCullingTrainer
 from .pruning import PruningTrainer, PrunerInDensifyTrainer
 
+depth_local_relative_kernel_radius = 16
+depth_local_relative_stride = depth_local_relative_kernel_radius // 2
+n_patches = 64
+depth_resize = depth_local_relative_stride*n_patches+depth_local_relative_kernel_radius*2+1
+
 
 def OpacityResetPruningTrainer(
         model: GaussianModel,
@@ -15,6 +20,9 @@ def OpacityResetPruningTrainer(
         prune_from_iter=1000,
         prune_interval=500,
         mercy_type='redundancy_opacity_opacity',
+        depth_local_relative_kernel_radius=depth_local_relative_kernel_radius,
+        depth_local_relative_stride=depth_local_relative_stride,
+        depth_resize=depth_resize,
         *args, **kwargs):
     return OpacityResetter(
         PruningTrainer(
@@ -23,6 +31,9 @@ def OpacityResetPruningTrainer(
             prune_from_iter=prune_from_iter,
             prune_interval=prune_interval,
             mercy_type=mercy_type,
+            depth_local_relative_kernel_radius=depth_local_relative_kernel_radius,
+            depth_local_relative_stride=depth_local_relative_stride,
+            depth_resize=depth_resize,
             **kwargs
         ),
         opacity_reset_from_iter=opacity_reset_from_iter,
