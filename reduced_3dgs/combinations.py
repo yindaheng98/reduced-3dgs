@@ -9,11 +9,6 @@ from .shculling import SHCullingTrainer
 from .pruning import PruningTrainer, PrunerInDensifyTrainer
 # from .pruning import BasePruningTrainer as PruningTrainer, BasePrunerInDensifyTrainer as PrunerInDensifyTrainer
 
-depth_local_relative_kernel_radius = 32
-depth_local_relative_stride = depth_local_relative_kernel_radius // 2
-n_patches = 32
-depth_resize = depth_local_relative_stride*n_patches+depth_local_relative_kernel_radius*2+1
-
 
 def OpacityResetPruningTrainer(
         model: GaussianModel,
@@ -22,23 +17,16 @@ def OpacityResetPruningTrainer(
         opacity_reset_from_iter=1000,
         opacity_reset_until_iter=15000,
         opacity_reset_interval=500,
-        prune_from_iter=1000,
-        prune_interval=500,
-        mercy_type='redundancy_opacity_opacity',
-        depth_local_relative_kernel_radius=depth_local_relative_kernel_radius,
-        depth_local_relative_stride=depth_local_relative_stride,
-        depth_resize=depth_resize,
+        # these params are better than default ones
+        mercy_type='redundancy_opacity_opacity',  # replace the default 'redundancy_opacity'. therefore work with opacity reset (prune low-opacity points)
+        prune_interval=500,  # replace the default 100. since there is no densification, donot prune too fast
         *args, **kwargs):
     return OpacityResetter(
         PruningTrainer(
             model, scene_extent, dataset,
             *args,
-            prune_from_iter=prune_from_iter,
             prune_interval=prune_interval,
             mercy_type=mercy_type,
-            depth_local_relative_kernel_radius=depth_local_relative_kernel_radius,
-            depth_local_relative_stride=depth_local_relative_stride,
-            depth_resize=depth_resize,
             **kwargs
         ),
         opacity_reset_from_iter=opacity_reset_from_iter,
