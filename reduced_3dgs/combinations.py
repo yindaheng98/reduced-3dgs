@@ -9,9 +9,9 @@ from .shculling import SHCullingTrainer
 from .pruning import PruningTrainer, PrunerInDensifyTrainer
 # from .pruning import BasePruningTrainer as PruningTrainer, BasePrunerInDensifyTrainer as PrunerInDensifyTrainer
 
-depth_local_relative_kernel_radius = 16
+depth_local_relative_kernel_radius = 32
 depth_local_relative_stride = depth_local_relative_kernel_radius // 2
-n_patches = 64
+n_patches = 32
 depth_resize = depth_local_relative_stride*n_patches+depth_local_relative_kernel_radius*2+1
 
 
