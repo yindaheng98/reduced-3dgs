@@ -9,7 +9,7 @@ from .trainer import BasePruningTrainer, BasePrunerInDensifyTrainer
 
 
 def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BasePruningTrainer, model, scene_extent, *args, **kwargs)
+    return DepthTrainerWrapper(BasePruningTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
 
 
 def DepthPrunerInDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
