@@ -64,7 +64,7 @@
                 "-i",
                 "30000",
                 "--mode",
-                "prune-shculling",
+                "densify-prune-shculling",
                 "--with_scale_reg",
                 "--empty_cache_every_step",
                 "--quantize",
