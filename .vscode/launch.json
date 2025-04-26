@@ -16,7 +16,7 @@
                 "-i",
                 "30000",
                 "--mode",
-                "prune-shculling",
+                "densify-prune-shculling",
                 "--with_scale_reg",
                 "--empty_cache_every_step",
             ]
@@ -36,9 +36,17 @@
                 "-i",
                 "30000",
                 "--mode",
-                "camera-prune-shculling",
+                "camera-densify-prune-shculling",
+                // "camera-prune-shculling",
                 "--with_scale_reg",
                 "--empty_cache_every_step",
+                "-oscale_reg_thr_scale=0.5",
+                "-odepth_l1_weight_init=1.0",
+                "-odepth_l1_weight_final=1.0",
+                "-odepth_from_iter=500",
+                "-odepth_local_relative_kernel_radius=32",
+                "-odepth_local_relative_stride=16",
+                "-odepth_resize=577",
             ]
         },
         {
