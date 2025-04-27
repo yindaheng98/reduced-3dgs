@@ -42,7 +42,7 @@ class QuantizeTrainerWrapper(TrainerWrapper, metaclass=abc.ABCMeta):
 
     @property
     def model(self) -> GaussianModel:
-        if self.quantize_from_iter <= self.curr_step < self.quantize_until_iter and self.curr_step % self.quantize_interval == 0:
+        if self.quantize_from_iter <= self.curr_step <= self.quantize_until_iter and self.curr_step % self.quantize_interval == 0:
             with torch.no_grad():
                 ids_dict, codebook_dict = self.quantizer.quantize(self.base_trainer.model, update_codebook=True)
                 return self.quantizer.dequantize(self.base_trainer.model, ids_dict, codebook_dict)

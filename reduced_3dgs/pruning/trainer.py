@@ -104,7 +104,7 @@ class BasePruner(AbstractDensifier):
         return self._model
 
     def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
-        if self.prune_from_iter < step < self.prune_until_iter and step % self.prune_interval == 0:
+        if self.prune_from_iter <= step <= self.prune_until_iter and step % self.prune_interval == 0:
             return DensificationInstruct(remove_mask=mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type))
         return DensificationInstruct()
 
