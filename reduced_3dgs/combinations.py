@@ -14,12 +14,12 @@ def OpacityResetPruningTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        opacity_reset_from_iter=1000,
+        opacity_reset_from_iter=3000,
         opacity_reset_until_iter=15000,
-        opacity_reset_interval=500,
         # these params are better than default ones
         mercy_type='redundancy_opacity_opacity',  # replace the default 'redundancy_opacity'. therefore work with opacity reset (prune low-opacity points)
-        prune_interval=500,  # replace the default 100. since there is no densification, donot prune too fast
+        opacity_reset_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
+        prune_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
         *args, **kwargs):
     return OpacityResetter(
         PruningTrainer(
@@ -41,12 +41,18 @@ def OpacityResetPrunerInDensifyTrainer(
         dataset: CameraDataset,
         opacity_reset_from_iter=3000,
         opacity_reset_until_iter=15000,
-        opacity_reset_interval=3000,
+        # these params are better than default ones
+        mercy_type='redundancy_opacity_opacity',  # replace the default 'redundancy_opacity'. therefore work with opacity reset (prune low-opacity points)
+        opacity_reset_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
+        prune_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
         *args, **kwargs):
     return OpacityResetter(
         PrunerInDensifyTrainer(
             model, scene_extent, dataset,
-            *args, **kwargs
+            *args,
+            prune_interval=prune_interval,
+            mercy_type=mercy_type,
+            **kwargs
         ),
         opacity_reset_from_iter=opacity_reset_from_iter,
         opacity_reset_until_iter=opacity_reset_until_iter,
