@@ -147,9 +147,7 @@ class PrunerInDensify(Densifier):
         self.mercy_type = mercy_type
 
     def prune(self) -> torch.Tensor:
-        _splatted_num_accum, _ = calculate_redundancy_metric(self.model, self.dataset, pixel_scale=self.box_size)
-        mask = mercy_points(self.model, _splatted_num_accum.squeeze(), self.lambda_mercy, self.mercy_minimum, self.mercy_type)
-        return torch.logical_or(mask, super().prune())
+        return torch.logical_or(mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type), super().prune())
 
 
 def BasePrunerInDensifyTrainer(
