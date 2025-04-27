@@ -84,7 +84,7 @@ class BasePruner(AbstractDensifier):
             self, model: GaussianModel, dataset: List[Camera],
             prune_from_iter=1000,
             prune_until_iter=15000,
-            prune_interval: int = 100,
+            prune_interval: int = 500,
             box_size=1.,
             lambda_mercy=1.,
             mercy_minimum=3,

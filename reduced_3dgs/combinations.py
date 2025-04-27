@@ -2,7 +2,7 @@ from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Came
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import OpacityResetDensificationTrainer
 # from gaussian_splatting.trainer import BaseOpacityResetDensificationTrainer as OpacityResetDensificationTrainer
-from gaussian_splatting.trainer import OpacityResetter, CameraTrainerWrapper
+from gaussian_splatting.trainer import OpacityResetTrainerWrapper, CameraTrainerWrapper
 from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper
 from .shculling import SHCullingTrainer
 # from .shculling import BaseSHCullingTrainer as SHCullingTrainer
@@ -14,24 +14,11 @@ def OpacityResetPruningTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        opacity_reset_from_iter=3000,
-        opacity_reset_until_iter=15000,
-        # these params are better than default ones
-        mercy_type='redundancy_opacity_opacity',  # replace the default 'redundancy_opacity'. therefore work with opacity reset (prune low-opacity points)
-        opacity_reset_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
-        prune_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
         *args, **kwargs):
-    return OpacityResetter(
-        PruningTrainer(
-            model, scene_extent, dataset,
-            *args,
-            prune_interval=prune_interval,
-            mercy_type=mercy_type,
-            **kwargs
-        ),
-        opacity_reset_from_iter=opacity_reset_from_iter,
-        opacity_reset_until_iter=opacity_reset_until_iter,
-        opacity_reset_interval=opacity_reset_interval
+    return OpacityResetTrainerWrapper(
+        lambda model, scene_extent, *args, **kwargs: PruningTrainer(model, scene_extent, dataset, *args, **kwargs),
+        model, scene_extent,
+        *args, **kwargs
     )
 
 
@@ -39,24 +26,11 @@ def OpacityResetPrunerInDensifyTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        opacity_reset_from_iter=3000,
-        opacity_reset_until_iter=15000,
-        # these params are better than default ones
-        mercy_type='redundancy_opacity_opacity',  # replace the default 'redundancy_opacity'. therefore work with opacity reset (prune low-opacity points)
-        opacity_reset_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
-        prune_interval=500,  # replace the default 100. since prune by opacity, donot prune too fast (train enough after opacity reset)
         *args, **kwargs):
-    return OpacityResetter(
-        PrunerInDensifyTrainer(
-            model, scene_extent, dataset,
-            *args,
-            prune_interval=prune_interval,
-            mercy_type=mercy_type,
-            **kwargs
-        ),
-        opacity_reset_from_iter=opacity_reset_from_iter,
-        opacity_reset_until_iter=opacity_reset_until_iter,
-        opacity_reset_interval=opacity_reset_interval
+    return OpacityResetTrainerWrapper(
+        lambda model, scene_extent, *args, **kwargs: PrunerInDensifyTrainer(model, scene_extent, dataset, *args, **kwargs),
+        model, scene_extent,
+        *args, **kwargs
     )
 
 
