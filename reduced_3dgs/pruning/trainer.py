@@ -1,7 +1,7 @@
 from typing import List
 import torch
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer import AbstractDensifier, Densifier, DensificationInstruct, DensificationTrainer
+from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, NoopDensifier
 from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_intersection, allocate_minimum_redundancy_value, find_minimum_projected_pixel_size
 from reduced_3dgs.simple_knn._C import distIndex2
 
@@ -79,9 +79,10 @@ def mercy_gaussians(
     return mask
 
 
-class BasePruner(AbstractDensifier):
+class BasePruner(DensifierWrapper):
     def __init__(
-            self, model: GaussianModel, dataset: List[Camera],
+            self, base_densifier: AbstractDensifier,
+            model: GaussianModel, dataset: List[Camera],
             prune_from_iter=1000,
             prune_until_iter=15000,
             prune_interval: int = 100,
@@ -89,6 +90,7 @@ class BasePruner(AbstractDensifier):
             lambda_mercy=1.,
             mercy_minimum=3,
             mercy_type='redundancy_opacity'):
+        super().__init__(base_densifier)
         self._model = model
         self.dataset = dataset
         self.prune_from_iter = prune_from_iter
@@ -103,10 +105,12 @@ class BasePruner(AbstractDensifier):
     def model(self) -> GaussianModel:
         return self._model
 
-    def densify_and_prune(self, loss, out, camera, step: int) -> DensificationInstruct:
+    def densify_and_prune(self, loss, out, camera, step: int):
+        ret = super().densify_and_prune(loss, out, camera, step)
         if self.prune_from_iter <= step <= self.prune_until_iter and step % self.prune_interval == 0:
-            return DensificationInstruct(remove_mask=mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type))
-        return DensificationInstruct()
+            remove_mask = mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type)
+            ret = ret._replace(remove_mask=remove_mask if ret.remove_mask is None else torch.logical_or(remove_mask, ret.remove_mask))
+        return ret
 
 
 def BasePruningTrainer(
@@ -124,73 +128,14 @@ def BasePruningTrainer(
     return DensificationTrainer(
         model, scene_extent,
         BasePruner(
+            NoopDensifier(),
             model, dataset,
-            prune_from_iter, prune_until_iter, prune_interval,
-            box_size, lambda_mercy, mercy_minimum, mercy_type
-        ), *args, **kwargs
-    )
-
-
-class PrunerInDensify(Densifier):
-    def __init__(
-            self, model: GaussianModel, scene_extent, dataset: List[Camera],
-            box_size=1.,
-            lambda_mercy=1.,
-            mercy_minimum=3,
-            mercy_type='redundancy_opacity',
-            *args, **kwargs):
-        super().__init__(model, scene_extent, *args, **kwargs)
-        self.dataset = dataset
-        self.box_size = box_size
-        self.lambda_mercy = lambda_mercy
-        self.mercy_minimum = mercy_minimum
-        self.mercy_type = mercy_type
-
-    def prune(self) -> torch.Tensor:
-        return torch.logical_or(mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type), super().prune())
-
-
-def BasePrunerInDensifyTrainer(
-        model: GaussianModel,
-        scene_extent: float,
-
-        dataset: List[Camera],
-        box_size=1.,
-        lambda_mercy=1.,
-        mercy_minimum=3,
-        mercy_type='redundancy_opacity',
-
-        densify_from_iter=500,
-        densify_until_iter=15000,
-        densify_interval=100,
-        densify_grad_threshold=0.0002,
-        densify_opacity_threshold=0.005,
-        densify_percent_dense=0.01,
-        densify_percent_too_big=0.8,
-
-        prune_from_iter=1000,
-        prune_until_iter=15000,
-        prune_interval=100,
-        prune_screensize_threshold=20,
-        prune_percent_too_big=1,
-
-        *args, **kwargs):
-    return DensificationTrainer(
-        model, scene_extent,
-        PrunerInDensify(
-            model, scene_extent, dataset,
-            box_size, lambda_mercy, mercy_minimum, mercy_type,
-            densify_from_iter=densify_from_iter,
-            densify_until_iter=densify_until_iter,
-            densify_interval=densify_interval,
-            densify_grad_threshold=densify_grad_threshold,
-            densify_opacity_threshold=densify_opacity_threshold,
-            densify_percent_dense=densify_percent_dense,
-            densify_percent_too_big=densify_percent_too_big,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
             prune_interval=prune_interval,
-            prune_screensize_threshold=prune_screensize_threshold,
-            prune_percent_too_big=prune_percent_too_big
+            box_size=box_size,
+            lambda_mercy=lambda_mercy,
+            mercy_minimum=mercy_minimum,
+            mercy_type=mercy_type,
         ), *args, **kwargs
     )
