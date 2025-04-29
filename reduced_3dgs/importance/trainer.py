@@ -116,22 +116,45 @@ def score2mask(percent, import_score: list, threshold=None):
     return prune_mask
 
 
-def prune_gaussians(gaussians: GaussianModel, dataset: CameraDataset, prune_type="important_score", prune_percent=0.1, prune_thr=None, v_pow=0.1):
+def prune_gaussians(
+        gaussians: GaussianModel, dataset: CameraDataset,
+        prune_type="comprehensive",
+        prune_percent=0.1,
+        prune_thr_important_score=None,
+        prune_thr_v_important_score=1.0,
+        prune_thr_max_v_important_score=None,
+        prune_thr_count=1,
+        prune_thr_T_alpha=0.01,
+        v_pow=0.1):
     gaussian_list, opacity_imp_list, T_alpha_imp_list = prune_list(gaussians, dataset)
     match prune_type:
         case "important_score":
-            mask = score2mask(prune_percent, opacity_imp_list, prune_thr)
+            mask = score2mask(prune_percent, opacity_imp_list, prune_thr_important_score)
         case "v_important_score":
             v_list = calculate_v_imp_score(gaussians, opacity_imp_list, v_pow)
-            mask = score2mask(prune_percent, v_list, prune_thr)
+            mask = score2mask(prune_percent, v_list, prune_thr_v_important_score)
         case "max_v_important_score":
             v_list = opacity_imp_list * torch.max(gaussians.get_scaling, dim=1)[0]
-            mask = score2mask(prune_percent, v_list, prune_thr)
+            mask = score2mask(prune_percent, v_list, prune_thr_max_v_important_score)
         case "count":
-            mask = score2mask(prune_percent, gaussian_list, prune_thr)
+            mask = score2mask(prune_percent, gaussian_list, prune_thr_count)
         case "T_alpha":
             # new importance score defined by doji
-            mask = score2mask(prune_percent, T_alpha_imp_list, prune_thr)
+            mask = score2mask(prune_percent, T_alpha_imp_list, prune_thr_T_alpha)
+        case "comprehensive":
+            mask = torch.zeros_like(gaussian_list, dtype=torch.bool)
+            if prune_thr_important_score is not None:
+                mask |= score2mask(prune_percent, opacity_imp_list, prune_thr_important_score)
+            if prune_thr_v_important_score is not None:
+                v_list = calculate_v_imp_score(gaussians, opacity_imp_list, v_pow)
+                mask |= score2mask(prune_percent, v_list, prune_thr_v_important_score)
+            if prune_thr_max_v_important_score is not None:
+                v_list = opacity_imp_list * torch.max(gaussians.get_scaling, dim=1)[0]
+                mask |= score2mask(prune_percent, v_list, prune_thr_max_v_important_score)
+            if prune_thr_count is not None:
+                mask |= score2mask(prune_percent, gaussian_list, prune_thr_count)
+            if prune_thr_T_alpha is not None:
+                mask |= score2mask(prune_percent, T_alpha_imp_list, prune_thr_T_alpha)
         case _:
             raise Exception("Unsupportive prunning method")
     return mask
@@ -144,17 +167,39 @@ class ImportancePruner(DensifierWrapper):
             importance_prune_from_iter=15000,
             importance_prune_until_iter=20000,
             importance_prune_interval: int = 1000,
+            importance_prune_type="comprehensive",
+            importance_prune_percent=0.1,
+            importance_prune_thr_important_score=None,
+            importance_prune_thr_v_important_score=1.0,
+            importance_prune_thr_max_v_important_score=None,
+            importance_prune_thr_count=1,
+            importance_prune_thr_T_alpha=0.01,
+            importance_v_pow=0.1
     ):
         super().__init__(base_densifier)
         self.dataset = dataset
         self.importance_prune_from_iter = importance_prune_from_iter
         self.importance_prune_until_iter = importance_prune_until_iter
         self.importance_prune_interval = importance_prune_interval
+        self.prune_percent = importance_prune_percent
+        self.prune_thr_important_score = importance_prune_thr_important_score
+        self.prune_thr_v_important_score = importance_prune_thr_v_important_score
+        self.prune_thr_max_v_important_score = importance_prune_thr_max_v_important_score
+        self.prune_thr_count = importance_prune_thr_count
+        self.prune_thr_T_alpha = importance_prune_thr_T_alpha
+        self.v_pow = importance_v_pow
+        self.prune_type = importance_prune_type
 
     def densify_and_prune(self, loss, out, camera, step: int):
         ret = super().densify_and_prune(loss, out, camera, step)
         if self.importance_prune_from_iter <= step <= self.importance_prune_until_iter and step % self.importance_prune_interval == 0:
-            remove_mask = prune_gaussians(self.model, self.dataset)
+            remove_mask = prune_gaussians(
+                self.model, self.dataset,
+                self.prune_type, self.prune_percent,
+                self.prune_thr_important_score, self.prune_thr_v_important_score,
+                self.prune_thr_max_v_important_score, self.prune_thr_count,
+                self.prune_thr_T_alpha, self.v_pow,
+            )
             ret = ret._replace(remove_mask=remove_mask if ret.remove_mask is None else torch.logical_or(ret.remove_mask, remove_mask))
         return ret
 
@@ -164,9 +209,17 @@ def BaseImportancePruningTrainer(
         scene_extent: float,
         dataset: List[Camera],
         *args,
-        importance_prune_from_iter=1000,
-        importance_prune_until_iter=15000,
-        importance_prune_interval: int = 100,
+        importance_prune_from_iter=15000,
+        importance_prune_until_iter=20000,
+        importance_prune_interval: int = 1000,
+        importance_prune_type="comprehensive",
+        importance_prune_percent=0.1,
+        importance_prune_thr_important_score=None,
+        importance_prune_thr_v_important_score=1.0,
+        importance_prune_thr_max_v_important_score=None,
+        importance_prune_thr_count=1,
+        importance_prune_thr_T_alpha=0.01,
+        importance_v_pow=0.1,
         **kwargs):
     return DensificationTrainer(
         model, scene_extent,
@@ -176,5 +229,13 @@ def BaseImportancePruningTrainer(
             importance_prune_from_iter=importance_prune_from_iter,
             importance_prune_until_iter=importance_prune_until_iter,
             importance_prune_interval=importance_prune_interval,
+            importance_prune_type=importance_prune_type,
+            importance_prune_percent=importance_prune_percent,
+            importance_prune_thr_important_score=importance_prune_thr_important_score,
+            importance_prune_thr_v_important_score=importance_prune_thr_v_important_score,
+            importance_prune_thr_max_v_important_score=importance_prune_thr_max_v_important_score,
+            importance_prune_thr_count=importance_prune_thr_count,
+            importance_prune_thr_T_alpha=importance_prune_thr_T_alpha,
+            importance_v_pow=importance_v_pow,
         ), *args, **kwargs
     )
