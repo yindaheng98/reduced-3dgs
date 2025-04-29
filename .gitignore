@@ -2,6 +2,7 @@ data
 output
 
 /reduced_3dgs/diff_gaussian_rasterization
+/reduced_3dgs/pruning/importance/diff_gaussian_rasterization
 /reduced_3dgs/simple_knn
 /gaussian_splatting
 
