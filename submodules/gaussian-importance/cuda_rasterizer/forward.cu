@@ -471,9 +471,9 @@ renderCUDA_count(
 			}
 
 			//add count 
-			gaussian_count[collected_id[j]]++;
-			opacity_important_score[collected_id[j]] += con_o.w; //opacity
-			T_alpha_important_score[collected_id[j]] += alpha * T;
+			atomicAdd(&gaussian_count[collected_id[j]], 1);
+			atomicAdd(&opacity_important_score[collected_id[j]], con_o.w); //opacity
+			atomicAdd(&T_alpha_important_score[collected_id[j]], alpha * T);
 
 			// Eq. (3) from 3D Gaussian splatting paper.
 			for (int ch = 0; ch < CHANNELS; ch++)
