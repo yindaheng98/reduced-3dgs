@@ -48,7 +48,7 @@ importance_sources = [
     "rasterize_points.cu",
     "ext.cpp"]
 importance_packages = {
-    'reduced_3dgs.pruning.importance.diff_gaussian_rasterization': 'submodules/gaussian-importance/diff_gaussian_rasterization',
+    'reduced_3dgs.importance.diff_gaussian_rasterization': 'submodules/gaussian-importance/diff_gaussian_rasterization',
 }
 
 cxx_compiler_flags = []
@@ -60,7 +60,7 @@ if os.name == 'nt':
 
 setup(
     name="reduced_3dgs",
-    version='1.8.17',
+    version='1.8.18',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
     url='https://github.com/yindaheng98/reduced-3dgs',
@@ -83,7 +83,7 @@ setup(
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(rasterizor_root), "third_party/glm/")]}
         ),
         CUDAExtension(
-            name="reduced_3dgs.pruning.importance.diff_gaussian_rasterization._C",
+            name="reduced_3dgs.importance.diff_gaussian_rasterization._C",
             sources=[os.path.join(importance_root, source) for source in importance_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(importance_root), "third_party/glm/")]}
         ),

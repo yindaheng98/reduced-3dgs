@@ -1,8 +1,9 @@
 import math
+from typing import Callable, List
 import torch
 
 from gaussian_splatting import Camera, GaussianModel
-from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, BaseTrainer, Trainer
+from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, NoopDensifier
 from gaussian_splatting.dataset import CameraDataset
 from .diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 
@@ -74,68 +75,73 @@ def count_render(self: GaussianModel, viewpoint_camera: Camera):
     }
 
 
-class ImportancePruner(TrainerWrapper):
-    def __init__(
-            self, base_trainer: AbstractTrainer,
-            dataset: CameraDataset,
-            importance_prune_at_steps=[15000],
-    ):
-        super().__init__(base_trainer)
-        self.dataset = dataset
-        self.importance_prune_at_steps = importance_prune_at_steps
+def prune_gaussians(model: GaussianModel, dataset: CameraDataset):
+    gaussian_count = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.int)
+    opacity_important_score = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.float)
+    T_alpha_important_score = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.float)
+    for camera in dataset:
+        out = count_render(model, camera)
+        gaussian_count += out["gaussians_count"]
+        opacity_important_score += out["opacity_important_score"]
+        T_alpha_important_score += out["T_alpha_important_score"]
+    return None
 
-    def optim_step(self):
-        ret = super().optim_step()
-        if self.curr_step in self.importance_prune_at_steps:
-            gaussian_count = torch.zeros(self.model.get_xyz.shape[0], device=self.model.get_xyz.device, dtype=torch.int)
-            opacity_important_score = torch.zeros(self.model.get_xyz.shape[0], device=self.model.get_xyz.device, dtype=torch.float)
-            T_alpha_important_score = torch.zeros(self.model.get_xyz.shape[0], device=self.model.get_xyz.device, dtype=torch.float)
-            for camera in self.dataset:
-                out = count_render(self.model, camera)
-                gaussian_count += out["gaussians_count"]
-                opacity_important_score += out["opacity_important_score"]
-                T_alpha_important_score += out["T_alpha_important_score"]
-            pass
+
+class ImportancePruner(DensifierWrapper):
+    def __init__(
+            self, base_densifier: AbstractDensifier,
+            dataset: CameraDataset,
+            importance_prune_from_iter=1000,
+            importance_prune_until_iter=15000,
+            importance_prune_interval: int = 100,
+    ):
+        super().__init__(base_densifier)
+        self.dataset = dataset
+        self.importance_prune_from_iter = importance_prune_from_iter
+        self.importance_prune_until_iter = importance_prune_until_iter
+        self.importance_prune_interval = importance_prune_interval
+
+    def densify_and_prune(self, loss, out, camera, step: int):
+        ret = super().densify_and_prune(loss, out, camera, step)
+        if self.importance_prune_from_iter <= step <= self.importance_prune_until_iter and step % self.importance_prune_interval == 0:
+            remove_mask = prune_gaussians(self.model, self.dataset)
+            ret = ret._replace(remove_mask=remove_mask if ret.remove_mask is None else torch.logical_or(ret.remove_mask, remove_mask))
         return ret
 
 
-def ImportancePruningTrainerWrapper(
-    base_trainer_constructor,
+def ImportancePrunerWrapper(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
-        dataset: CameraDataset,
-        importance_prune_at_steps=[15000],
+        dataset: List[Camera],
+        importance_prune_from_iter=1000,
+        importance_prune_until_iter=15000,
+        importance_prune_interval: int = 100,
         *args, **kwargs):
     return ImportancePruner(
-        base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
+        base_densifier_constructor(model, scene_extent, *args, **kwargs),
         dataset,
-        importance_prune_at_steps=importance_prune_at_steps,
+        importance_prune_from_iter=importance_prune_from_iter,
+        importance_prune_until_iter=importance_prune_until_iter,
+        importance_prune_interval=importance_prune_interval,
     )
 
 
 def BaseImportancePruningTrainer(
-    model: GaussianModel,
+        model: GaussianModel,
         scene_extent: float,
-        dataset: CameraDataset,
-        importance_prune_at_steps=[15000],
+        dataset: List[Camera],
+        importance_prune_from_iter=1000,
+        importance_prune_until_iter=15000,
+        importance_prune_interval: int = 100,
         *args, **kwargs):
-    return ImportancePruningTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: BaseTrainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
-        importance_prune_at_steps=importance_prune_at_steps,
-        *args, **kwargs,
-    )
-
-
-def ImportancePruningTrainer(
-    model: GaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        importance_prune_at_steps=[15000],
-        *args, **kwargs):
-    return ImportancePruningTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: Trainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
-        importance_prune_at_steps=importance_prune_at_steps,
-        *args, **kwargs,
+    return DensificationTrainer(
+        model, scene_extent,
+        ImportancePruner(
+            NoopDensifier(model),
+            dataset,
+            importance_prune_from_iter=importance_prune_from_iter,
+            importance_prune_until_iter=importance_prune_until_iter,
+            importance_prune_interval=importance_prune_interval,
+        ), *args, **kwargs
     )
