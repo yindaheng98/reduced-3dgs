@@ -121,10 +121,10 @@ def prune_gaussians(
         prune_type="comprehensive",
         prune_percent=0.1,
         prune_thr_important_score=None,
-        prune_thr_v_important_score=1.0,
+        prune_thr_v_important_score=None,
         prune_thr_max_v_important_score=None,
-        prune_thr_count=1,
-        prune_thr_T_alpha=0.01,
+        prune_thr_count=None,
+        prune_thr_T_alpha=None,
         v_pow=0.1):
     gaussian_list, opacity_imp_list, T_alpha_imp_list = prune_list(gaussians, dataset)
     match prune_type:
@@ -170,12 +170,11 @@ class ImportancePruner(DensifierWrapper):
             importance_prune_type="comprehensive",
             importance_prune_percent=0.1,
             importance_prune_thr_important_score=None,
-            importance_prune_thr_v_important_score=1.0,
+            importance_prune_thr_v_important_score=3.0,
             importance_prune_thr_max_v_important_score=None,
             importance_prune_thr_count=1,
-            importance_prune_thr_T_alpha=0.01,
-            importance_v_pow=0.1
-    ):
+            importance_prune_thr_T_alpha=0.1,
+            importance_v_pow=0.1):
         super().__init__(base_densifier)
         self.dataset = dataset
         self.importance_prune_from_iter = importance_prune_from_iter
@@ -215,10 +214,10 @@ def BaseImportancePruningTrainer(
         importance_prune_type="comprehensive",
         importance_prune_percent=0.1,
         importance_prune_thr_important_score=None,
-        importance_prune_thr_v_important_score=1.0,
+        importance_prune_thr_v_important_score=3.0,
         importance_prune_thr_max_v_important_score=None,
         importance_prune_thr_count=1,
-        importance_prune_thr_T_alpha=0.01,
+        importance_prune_thr_T_alpha=0.1,
         importance_v_pow=0.1,
         **kwargs):
     return DensificationTrainer(

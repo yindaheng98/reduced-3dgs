@@ -16,10 +16,10 @@ def BaseImportancePrunerInDensifyTrainer(
         importance_prune_type="comprehensive",
         importance_prune_percent=0.1,
         importance_prune_thr_important_score=None,
-        importance_prune_thr_v_important_score=1.0,
+        importance_prune_thr_v_important_score=3.0,
         importance_prune_thr_max_v_important_score=None,
         importance_prune_thr_count=1,
-        importance_prune_thr_T_alpha=0.01,
+        importance_prune_thr_T_alpha=0.1,
         importance_v_pow=0.1,
         **kwargs):
     return DensificationTrainerWrapper(
