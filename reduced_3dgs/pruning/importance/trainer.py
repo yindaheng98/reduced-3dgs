@@ -87,9 +87,15 @@ class ImportancePruner(TrainerWrapper):
     def optim_step(self):
         ret = super().optim_step()
         if self.curr_step in self.importance_prune_at_steps:
+            gaussian_count = torch.zeros(self.model.get_xyz.shape[0], device=self.model.get_xyz.device, dtype=torch.int)
+            opacity_important_score = torch.zeros(self.model.get_xyz.shape[0], device=self.model.get_xyz.device, dtype=torch.float)
+            T_alpha_important_score = torch.zeros(self.model.get_xyz.shape[0], device=self.model.get_xyz.device, dtype=torch.float)
             for camera in self.dataset:
                 out = count_render(self.model, camera)
-                pass
+                gaussian_count += out["gaussians_count"]
+                opacity_important_score += out["opacity_important_score"]
+                T_alpha_important_score += out["T_alpha_important_score"]
+            pass
         return ret
 
 
@@ -125,15 +131,11 @@ def ImportancePruningTrainer(
     model: GaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
+        importance_prune_at_steps=[15000],
         *args, **kwargs):
     return ImportancePruningTrainerWrapper(
         lambda model, scene_extent, dataset, *args, **kwargs: Trainer(model, scene_extent, *args, **kwargs),
         model, scene_extent, dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
+        importance_prune_at_steps=importance_prune_at_steps,
         *args, **kwargs,
     )
