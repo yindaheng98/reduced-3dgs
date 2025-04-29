@@ -1,2 +1,2 @@
-from .trainer import BasePruner, BasePruningTrainer
+from .trainer import BasePruner, BasePruningTrainer, PruningTrainerWrapper
 from .combinations import BasePrunerInDensifyTrainer, PruningTrainer, PrunerInDensifyTrainer, PrunerInDensifyTrainerWrapper

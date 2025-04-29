@@ -1,4 +1,4 @@
-from typing import List
+from typing import Callable, List
 import torch
 from gaussian_splatting import GaussianModel, Camera
 from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, NoopDensifier
@@ -108,7 +108,8 @@ class BasePruner(DensifierWrapper):
         return ret
 
 
-def BasePruningTrainer(
+def PruningTrainerWrapper(
+        noargs_base_densifier_constructor: Callable[[GaussianModel, float, List[Camera]], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
@@ -123,7 +124,7 @@ def BasePruningTrainer(
     return DensificationTrainer(
         model, scene_extent,
         BasePruner(
-            NoopDensifier(model),
+            noargs_base_densifier_constructor(model, scene_extent, dataset),
             dataset,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
@@ -133,4 +134,16 @@ def BasePruningTrainer(
             mercy_minimum=mercy_minimum,
             mercy_type=mercy_type,
         ), *args, **kwargs
+    )
+
+
+def BasePruningTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        dataset: List[Camera],
+        *args, **kwargs):
+    return DensificationTrainer(
+        lambda model, scene_extent, dataset: NoopDensifier(model),
+        model, scene_extent, dataset,
+        *args, **kwargs
     )
