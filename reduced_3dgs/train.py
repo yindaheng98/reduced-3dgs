@@ -14,10 +14,9 @@ from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
 from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
 from reduced_3dgs.pruning import PruningTrainer
-from reduced_3dgs.pruning.importance import ImportancePruningTrainerWrapper
-from reduced_3dgs.combinations import OpacityResetPrunerInDensifyTrainer, SHCullingDensifyTrainer, SHCullingPruneTrainer, SHCullingPruningDensifyTrainer
+from reduced_3dgs.combinations import OpacityResetPrunerInDensifyTrainer, SHCullingDensifyTrainer, SHCullingPruningTrainer, SHCullingPruningDensifyTrainer
 from reduced_3dgs.combinations import CameraTrainableVariableSHGaussianModel, CameraSHCullingTrainer, CameraPruningTrainer
-from reduced_3dgs.combinations import CameraOpacityResetPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruneTrainer, CameraSHCullingPruningDensifyTrainer
+from reduced_3dgs.combinations import CameraOpacityResetPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruningTrainer, CameraSHCullingPruningDensifyTrainer
 
 
 basemodes = {
@@ -25,19 +24,17 @@ basemodes = {
     "pruning": PruningTrainer,
     "densify-pruning": OpacityResetPrunerInDensifyTrainer,
     "densify-shculling": SHCullingDensifyTrainer,
-    "prune-shculling": SHCullingPruneTrainer,
+    "prune-shculling": SHCullingPruningTrainer,
     "densify-prune-shculling": SHCullingPruningDensifyTrainer,
 }
-basemodes = {k: lambda *args, **kwargs: ImportancePruningTrainerWrapper(v, *args, **kwargs) for k, v in basemodes.items()}
 cameramodes = {
     "camera-shculling": CameraSHCullingTrainer,
     "camera-pruning": CameraPruningTrainer,
     "camera-densify-pruning": CameraOpacityResetPrunerInDensifyTrainer,
     "camera-densify-shculling": CameraSHCullingDensifyTrainer,
-    "camera-prune-shculling": CameraSHCullingPruneTrainer,
+    "camera-prune-shculling": CameraSHCullingPruningTrainer,
     "camera-densify-prune-shculling": CameraSHCullingPruningDensifyTrainer,
 }
-cameramodes = {k: lambda *args, **kwargs: ImportancePruningTrainerWrapper(v, *args, **kwargs) for k, v in cameramodes.items()}
 
 
 def prepare_quantizer(

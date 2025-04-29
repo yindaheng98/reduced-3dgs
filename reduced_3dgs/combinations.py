@@ -46,7 +46,7 @@ def SHCullingDensifyTrainer(
     )
 
 
-def SHCullingPruneTrainer(
+def SHCullingPruningTrainer(
     model: VariableSHGaussianModel,
         scene_extent: float,
         dataset: CameraDataset,
@@ -123,13 +123,13 @@ def CameraSHCullingDensifyTrainer(
     )
 
 
-def CameraSHCullingPruneTrainer(
+def CameraSHCullingPruningTrainer(
         model: CameraTrainableVariableSHGaussianModel,
         scene_extent: float,
         dataset: TrainableCameraDataset,
         *args, **kwargs):
     return CameraTrainerWrapper(
-        SHCullingPruneTrainer,
+        SHCullingPruningTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
