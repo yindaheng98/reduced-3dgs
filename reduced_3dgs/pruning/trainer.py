@@ -113,6 +113,7 @@ def PruningTrainerWrapper(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
+        *args,
         prune_from_iter=1000,
         prune_until_iter=15000,
         prune_interval: int = 100,
@@ -120,7 +121,7 @@ def PruningTrainerWrapper(
         lambda_mercy=1.,
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
-        *args, **kwargs):
+        **kwargs):
     return DensificationTrainer(
         model, scene_extent,
         BasePruner(

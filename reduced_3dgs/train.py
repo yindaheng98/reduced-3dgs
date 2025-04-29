@@ -14,23 +14,23 @@ from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
 from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
 from reduced_3dgs.pruning import PruningTrainer
-from reduced_3dgs.combinations import OpacityResetPrunerInDensifyTrainer, SHCullingDensifyTrainer, SHCullingPruningTrainer, SHCullingPruningDensifyTrainer
+from reduced_3dgs.combinations import PrunerInDensifyTrainer, SHCullingDensificationTrainer, SHCullingPruningTrainer, SHCullingPrunerInDensifyTrainer
 from reduced_3dgs.combinations import CameraTrainableVariableSHGaussianModel, CameraSHCullingTrainer, CameraPruningTrainer
-from reduced_3dgs.combinations import CameraOpacityResetPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruningTrainer, CameraSHCullingPruningDensifyTrainer
+from reduced_3dgs.combinations import CameraPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruningTrainer, CameraSHCullingPruningDensifyTrainer
 
 
 basemodes = {
     "shculling": SHCullingTrainer,
     "pruning": PruningTrainer,
-    "densify-pruning": OpacityResetPrunerInDensifyTrainer,
-    "densify-shculling": SHCullingDensifyTrainer,
+    "densify-pruning": PrunerInDensifyTrainer,
+    "densify-shculling": SHCullingDensificationTrainer,
     "prune-shculling": SHCullingPruningTrainer,
-    "densify-prune-shculling": SHCullingPruningDensifyTrainer,
+    "densify-prune-shculling": SHCullingPrunerInDensifyTrainer,
 }
 cameramodes = {
     "camera-shculling": CameraSHCullingTrainer,
     "camera-pruning": CameraPruningTrainer,
-    "camera-densify-pruning": CameraOpacityResetPrunerInDensifyTrainer,
+    "camera-densify-pruning": CameraPrunerInDensifyTrainer,
     "camera-densify-shculling": CameraSHCullingDensifyTrainer,
     "camera-prune-shculling": CameraSHCullingPruningTrainer,
     "camera-densify-prune-shculling": CameraSHCullingPruningDensifyTrainer,

@@ -2,7 +2,7 @@
 from typing import Callable, List
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
-from gaussian_splatting.trainer import AbstractDensifier, DepthTrainerWrapper, NoopDensifier, DensificationTrainerWrapper
+from gaussian_splatting.trainer import AbstractDensifier, DepthTrainerWrapper, NoopDensifier, SplitCloneDensifierTrainerWrapper
 from .trainer import BasePruner, BasePruningTrainer
 
 
@@ -11,6 +11,7 @@ def PrunerInDensifyTrainerWrapper(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
+        *args,
         prune_from_iter=1000,
         prune_until_iter=15000,
         prune_interval: int = 100,
@@ -18,8 +19,8 @@ def PrunerInDensifyTrainerWrapper(
         lambda_mercy=1.,
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
-        *args, **kwargs):
-    return DensificationTrainerWrapper(
+        **kwargs):
+    return SplitCloneDensifierTrainerWrapper(
         lambda model, scene_extent: BasePruner(
             noargs_base_densifier_constructor(model, scene_extent, dataset),
             dataset,

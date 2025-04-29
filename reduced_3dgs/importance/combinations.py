@@ -9,10 +9,11 @@ def BaseImportancePrunerInDensifyTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
+        *args,
         importance_prune_from_iter=1000,
         importance_prune_until_iter=15000,
         importance_prune_interval=100,
-        *args, **kwargs):
+        **kwargs):
     return DensificationTrainerWrapper(
         lambda model, scene_extent: ImportancePruner(
             NoopDensifier(model),

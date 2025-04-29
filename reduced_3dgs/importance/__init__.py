@@ -1,2 +1,3 @@
-from .trainer import ImportancePruner, BaseImportancePruningTrainer, ImportancePrunerWrapper
-from .combinations import BaseImportancePrunerInDensifyTrainer, ImportancePruningTrainer, ImportancePrunerInDensifyTrainer
+from .trainer import ImportancePruner, BaseImportancePruningTrainer
+from .combinations import BaseImportancePrunerInDensifyTrainer, DepthImportancePruningTrainer, DepthImportancePrunerInDensifyTrainer
+from .combinations import ImportancePruningTrainer, ImportancePrunerInDensifyTrainer

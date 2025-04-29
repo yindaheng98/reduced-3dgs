@@ -91,9 +91,9 @@ class ImportancePruner(DensifierWrapper):
     def __init__(
             self, base_densifier: AbstractDensifier,
             dataset: CameraDataset,
-            importance_prune_from_iter=1000,
-            importance_prune_until_iter=15000,
-            importance_prune_interval: int = 100,
+            importance_prune_from_iter=15000,
+            importance_prune_until_iter=20000,
+            importance_prune_interval: int = 1000,
     ):
         super().__init__(base_densifier)
         self.dataset = dataset
@@ -109,32 +109,15 @@ class ImportancePruner(DensifierWrapper):
         return ret
 
 
-def ImportancePrunerWrapper(
-        base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel,
-        scene_extent: float,
-        dataset: List[Camera],
-        importance_prune_from_iter=1000,
-        importance_prune_until_iter=15000,
-        importance_prune_interval: int = 100,
-        *args, **kwargs):
-    return ImportancePruner(
-        base_densifier_constructor(model, scene_extent, *args, **kwargs),
-        dataset,
-        importance_prune_from_iter=importance_prune_from_iter,
-        importance_prune_until_iter=importance_prune_until_iter,
-        importance_prune_interval=importance_prune_interval,
-    )
-
-
 def BaseImportancePruningTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
+        *args,
         importance_prune_from_iter=1000,
         importance_prune_until_iter=15000,
         importance_prune_interval: int = 100,
-        *args, **kwargs):
+        **kwargs):
     return DensificationTrainer(
         model, scene_extent,
         ImportancePruner(

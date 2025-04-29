@@ -60,7 +60,7 @@ if os.name == 'nt':
 
 setup(
     name="reduced_3dgs",
-    version='1.8.18',
+    version='1.8.19',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
     url='https://github.com/yindaheng98/reduced-3dgs',
