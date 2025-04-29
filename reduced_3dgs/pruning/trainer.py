@@ -82,7 +82,7 @@ def mercy_gaussians(
 class BasePruner(DensifierWrapper):
     def __init__(
             self, base_densifier: AbstractDensifier,
-            model: GaussianModel, dataset: List[Camera],
+            dataset: List[Camera],
             prune_from_iter=1000,
             prune_until_iter=15000,
             prune_interval: int = 100,
@@ -91,7 +91,6 @@ class BasePruner(DensifierWrapper):
             mercy_minimum=3,
             mercy_type='redundancy_opacity'):
         super().__init__(base_densifier)
-        self._model = model
         self.dataset = dataset
         self.prune_from_iter = prune_from_iter
         self.prune_until_iter = prune_until_iter
@@ -100,10 +99,6 @@ class BasePruner(DensifierWrapper):
         self.lambda_mercy = lambda_mercy
         self.mercy_minimum = mercy_minimum
         self.mercy_type = mercy_type
-
-    @property
-    def model(self) -> GaussianModel:
-        return self._model
 
     def densify_and_prune(self, loss, out, camera, step: int):
         ret = super().densify_and_prune(loss, out, camera, step)
@@ -128,8 +123,8 @@ def BasePruningTrainer(
     return DensificationTrainer(
         model, scene_extent,
         BasePruner(
-            NoopDensifier(),
-            model, dataset,
+            NoopDensifier(model),
+            dataset,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
             prune_interval=prune_interval,

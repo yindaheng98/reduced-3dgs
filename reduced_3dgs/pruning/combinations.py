@@ -21,7 +21,7 @@ def BasePrunerInDensifyTrainer(
     return DensificationTrainerWrapper(
         lambda model, scene_extent: BasePruner(
             NoopDensifier(model),
-            model, dataset,
+            dataset,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
             prune_interval=prune_interval,
