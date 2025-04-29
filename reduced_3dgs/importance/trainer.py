@@ -75,7 +75,7 @@ def count_render(self: GaussianModel, viewpoint_camera: Camera):
     }
 
 
-def prune_gaussians(model: GaussianModel, dataset: CameraDataset):
+def prune_list(model: GaussianModel, dataset: CameraDataset):
     gaussian_count = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.int)
     opacity_important_score = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.float)
     T_alpha_important_score = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.float)
@@ -84,7 +84,57 @@ def prune_gaussians(model: GaussianModel, dataset: CameraDataset):
         gaussian_count += out["gaussians_count"]
         opacity_important_score += out["opacity_important_score"]
         T_alpha_important_score += out["T_alpha_important_score"]
-    return None
+    return gaussian_count, opacity_important_score, T_alpha_important_score
+
+
+# return importance score with adaptive volume measure described in paper
+def calculate_v_imp_score(gaussians: GaussianModel, imp_list, v_pow):
+    """
+    :param gaussians: A data structure containing Gaussian components with a get_scaling method.
+    :param imp_list: The importance scores for each Gaussian component.
+    :param v_pow: The power to which the volume ratios are raised.
+    :return: A list of adjusted values (v_list) used for pruning.
+    """
+    # Calculate the volume of each Gaussian component
+    volume = torch.prod(gaussians.get_scaling, dim=1)
+    # Determine the kth_percent_largest value
+    index = int(len(volume) * 0.9)
+    sorted_volume, _ = torch.sort(volume, descending=True)
+    kth_percent_largest = sorted_volume[index]
+    # Calculate v_list
+    v_list = torch.pow(volume / kth_percent_largest, v_pow)
+    v_list = v_list * imp_list
+    return v_list
+
+
+def score2mask(percent, import_score: list, threshold=None):
+    sorted_tensor, _ = torch.sort(import_score, dim=0)
+    index_nth_percentile = int(percent * (sorted_tensor.shape[0] - 1))
+    value_nth_percentile = sorted_tensor[index_nth_percentile]
+    thr = min(threshold, value_nth_percentile) if threshold is not None else value_nth_percentile
+    prune_mask = (import_score <= thr)
+    return prune_mask
+
+
+def prune_gaussians(gaussians: GaussianModel, dataset: CameraDataset, prune_type="important_score", prune_percent=0.1, prune_thr=None, v_pow=0.1):
+    gaussian_list, opacity_imp_list, T_alpha_imp_list = prune_list(gaussians, dataset)
+    match prune_type:
+        case "important_score":
+            mask = score2mask(prune_percent, opacity_imp_list, prune_thr)
+        case "v_important_score":
+            v_list = calculate_v_imp_score(gaussians, opacity_imp_list, v_pow)
+            mask = score2mask(prune_percent, v_list, prune_thr)
+        case "max_v_important_score":
+            v_list = opacity_imp_list * torch.max(gaussians.get_scaling, dim=1)[0]
+            mask = score2mask(prune_percent, v_list, prune_thr)
+        case "count":
+            mask = score2mask(prune_percent, gaussian_list, prune_thr)
+        case "T_alpha":
+            # new importance score defined by doji
+            mask = score2mask(prune_percent, T_alpha_imp_list, prune_thr)
+        case _:
+            raise Exception("Unsupportive prunning method")
+    return mask
 
 
 class ImportancePruner(DensifierWrapper):
