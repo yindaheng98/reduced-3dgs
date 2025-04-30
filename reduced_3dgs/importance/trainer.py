@@ -1,8 +1,9 @@
 import math
-from typing import Callable, List
+from typing import List
 import torch
 
 from gaussian_splatting import Camera, GaussianModel
+from gaussian_splatting.camera import build_camera
 from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, NoopDensifier
 from gaussian_splatting.dataset import CameraDataset
 from .diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
@@ -75,11 +76,20 @@ def count_render(self: GaussianModel, viewpoint_camera: Camera):
     }
 
 
-def prune_list(model: GaussianModel, dataset: CameraDataset):
+def prune_list(model: GaussianModel, dataset: CameraDataset, resize=None):
     gaussian_count = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.int)
     opacity_important_score = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.float)
     T_alpha_important_score = torch.zeros(model.get_xyz.shape[0], device=model.get_xyz.device, dtype=torch.float)
     for camera in dataset:
+        if resize is not None:
+            height, width = camera.image_height, camera.image_width
+            scale = resize / max(height, width)
+            height, width = int(height * scale), int(width * scale)
+            camera = build_camera(
+                image_height=height, image_width=width,
+                FoVx=camera.FoVx, FoVy=camera.FoVy,
+                R=camera.R, T=camera.T,
+                device=camera.R.device)
         out = count_render(model, camera)
         gaussian_count += out["gaussians_count"]
         opacity_important_score += out["opacity_important_score"]
@@ -118,6 +128,7 @@ def score2mask(percent, import_score: list, threshold=None):
 
 def prune_gaussians(
         gaussians: GaussianModel, dataset: CameraDataset,
+        resize=None,
         prune_type="comprehensive",
         prune_percent=0.1,
         prune_thr_important_score=None,
@@ -127,7 +138,7 @@ def prune_gaussians(
         prune_thr_T_alpha=None,
         prune_thr_T_alpha_avg=None,
         v_pow=0.1):
-    gaussian_list, opacity_imp_list, T_alpha_imp_list = prune_list(gaussians, dataset)
+    gaussian_list, opacity_imp_list, T_alpha_imp_list = prune_list(gaussians, dataset, resize)
     match prune_type:
         case "important_score":
             mask = score2mask(prune_percent, opacity_imp_list, prune_thr_important_score)
@@ -176,6 +187,7 @@ class ImportancePruner(DensifierWrapper):
             importance_prune_from_iter=15000,
             importance_prune_until_iter=20000,
             importance_prune_interval: int = 1000,
+            importance_score_resize=None,
             importance_prune_type="comprehensive",
             importance_prune_percent=0.1,
             importance_prune_thr_important_score=None,
@@ -190,6 +202,7 @@ class ImportancePruner(DensifierWrapper):
         self.importance_prune_from_iter = importance_prune_from_iter
         self.importance_prune_until_iter = importance_prune_until_iter
         self.importance_prune_interval = importance_prune_interval
+        self.resize = importance_score_resize
         self.prune_percent = importance_prune_percent
         self.prune_thr_important_score = importance_prune_thr_important_score
         self.prune_thr_v_important_score = importance_prune_thr_v_important_score
@@ -205,6 +218,7 @@ class ImportancePruner(DensifierWrapper):
         if self.importance_prune_from_iter <= step <= self.importance_prune_until_iter and step % self.importance_prune_interval == 0:
             remove_mask = prune_gaussians(
                 self.model, self.dataset,
+                self.resize,
                 self.prune_type, self.prune_percent,
                 self.prune_thr_important_score, self.prune_thr_v_important_score,
                 self.prune_thr_max_v_important_score, self.prune_thr_count,
@@ -222,13 +236,14 @@ def BaseImportancePruningTrainer(
         importance_prune_from_iter=15000,
         importance_prune_until_iter=20000,
         importance_prune_interval: int = 1000,
+        importance_score_resize=None,
         importance_prune_type="comprehensive",
         importance_prune_percent=0.1,
         importance_prune_thr_important_score=None,
         importance_prune_thr_v_important_score=3.0,
         importance_prune_thr_max_v_important_score=None,
         importance_prune_thr_count=1,
-        importance_prune_thr_T_alpha=0.1,
+        importance_prune_thr_T_alpha=1.0,
         importance_prune_thr_T_alpha_avg=0.001,
         importance_v_pow=0.1,
         **kwargs):
@@ -240,6 +255,7 @@ def BaseImportancePruningTrainer(
             importance_prune_from_iter=importance_prune_from_iter,
             importance_prune_until_iter=importance_prune_until_iter,
             importance_prune_interval=importance_prune_interval,
+            importance_score_resize=importance_score_resize,
             importance_prune_type=importance_prune_type,
             importance_prune_percent=importance_prune_percent,
             importance_prune_thr_important_score=importance_prune_thr_important_score,
