@@ -23,7 +23,7 @@ def PrunerInDensifyTrainerWrapper(
     return SplitCloneDensifierTrainerWrapper(
         lambda model, scene_extent: BasePruner(
             noargs_base_densifier_constructor(model, scene_extent, dataset),
-            dataset,
+            scene_extent, dataset,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
             prune_interval=prune_interval,

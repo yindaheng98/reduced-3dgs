@@ -1,7 +1,7 @@
 from typing import Callable, List
 import torch
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer import AbstractDensifier, DensifierWrapper, DensificationTrainer, NoopDensifier
+from gaussian_splatting.trainer import AbstractDensifier, OpacityPruner, DensificationTrainer, NoopDensifier
 from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_intersection, allocate_minimum_redundancy_value, find_minimum_projected_pixel_size
 from reduced_3dgs.simple_knn._C import distIndex2
 
@@ -79,33 +79,28 @@ def mercy_gaussians(
     return mask
 
 
-class BasePruner(DensifierWrapper):
+class BasePruner(OpacityPruner):
     def __init__(
             self, base_densifier: AbstractDensifier,
+            scene_extent,
             dataset: List[Camera],
-            prune_from_iter=1000,
-            prune_until_iter=15000,
-            prune_interval: int = 100,
+            *args,
             box_size=1.,
             lambda_mercy=1.,
             mercy_minimum=3,
-            mercy_type='redundancy_opacity'):
-        super().__init__(base_densifier)
+            mercy_type='redundancy_opacity',
+            **kwargs):
+        super().__init__(base_densifier, scene_extent, *args, **kwargs)
         self.dataset = dataset
-        self.prune_from_iter = prune_from_iter
-        self.prune_until_iter = prune_until_iter
-        self.prune_interval = prune_interval
         self.box_size = box_size
         self.lambda_mercy = lambda_mercy
         self.mercy_minimum = mercy_minimum
         self.mercy_type = mercy_type
 
-    def densify_and_prune(self, loss, out, camera, step: int):
-        ret = super().densify_and_prune(loss, out, camera, step)
-        if self.prune_from_iter <= step <= self.prune_until_iter and step % self.prune_interval == 0:
-            remove_mask = mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type)
-            ret = ret._replace(remove_mask=remove_mask if ret.remove_mask is None else torch.logical_or(remove_mask, ret.remove_mask))
-        return ret
+    def prune(self) -> torch.Tensor:
+        remove_mask = mercy_gaussians(self.model, self.dataset, self.box_size, self.lambda_mercy, self.mercy_minimum, self.mercy_type)
+        prune_mask = torch.logical_or(super().prune(), remove_mask)
+        return prune_mask
 
 
 def PruningTrainerWrapper(
@@ -126,7 +121,7 @@ def PruningTrainerWrapper(
         model, scene_extent,
         BasePruner(
             noargs_base_densifier_constructor(model, scene_extent, dataset),
-            dataset,
+            scene_extent, dataset,
             prune_from_iter=prune_from_iter,
             prune_until_iter=prune_until_iter,
             prune_interval=prune_interval,
