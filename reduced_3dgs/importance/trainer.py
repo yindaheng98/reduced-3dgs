@@ -125,6 +125,7 @@ def prune_gaussians(
         prune_thr_max_v_important_score=None,
         prune_thr_count=None,
         prune_thr_T_alpha=None,
+        prune_thr_T_alpha_avg=None,
         v_pow=0.1):
     gaussian_list, opacity_imp_list, T_alpha_imp_list = prune_list(gaussians, dataset)
     match prune_type:
@@ -141,6 +142,10 @@ def prune_gaussians(
         case "T_alpha":
             # new importance score defined by doji
             mask = score2mask(prune_percent, T_alpha_imp_list, prune_thr_T_alpha)
+        case "T_alpha_avg":
+            v_list = T_alpha_imp_list / gaussian_list
+            v_list[gaussian_list <= 0] = 0
+            mask = score2mask(prune_percent, v_list, prune_thr_T_alpha_avg)
         case "comprehensive":
             mask = torch.zeros_like(gaussian_list, dtype=torch.bool)
             if prune_thr_important_score is not None:
@@ -155,6 +160,10 @@ def prune_gaussians(
                 mask |= score2mask(prune_percent, gaussian_list, prune_thr_count)
             if prune_thr_T_alpha is not None:
                 mask |= score2mask(prune_percent, T_alpha_imp_list, prune_thr_T_alpha)
+            if prune_thr_T_alpha_avg is not None:
+                v_list = T_alpha_imp_list / gaussian_list
+                v_list[gaussian_list <= 0] = 0
+                mask |= score2mask(prune_percent, v_list, prune_thr_T_alpha_avg)
         case _:
             raise Exception("Unsupportive prunning method")
     return mask
@@ -173,7 +182,8 @@ class ImportancePruner(DensifierWrapper):
             importance_prune_thr_v_important_score=3.0,
             importance_prune_thr_max_v_important_score=None,
             importance_prune_thr_count=1,
-            importance_prune_thr_T_alpha=0.1,
+            importance_prune_thr_T_alpha=1,
+            importance_prune_thr_T_alpha_avg=0.001,
             importance_v_pow=0.1):
         super().__init__(base_densifier)
         self.dataset = dataset
@@ -186,6 +196,7 @@ class ImportancePruner(DensifierWrapper):
         self.prune_thr_max_v_important_score = importance_prune_thr_max_v_important_score
         self.prune_thr_count = importance_prune_thr_count
         self.prune_thr_T_alpha = importance_prune_thr_T_alpha
+        self.prune_thr_T_alpha_avg = importance_prune_thr_T_alpha_avg
         self.v_pow = importance_v_pow
         self.prune_type = importance_prune_type
 
@@ -197,7 +208,7 @@ class ImportancePruner(DensifierWrapper):
                 self.prune_type, self.prune_percent,
                 self.prune_thr_important_score, self.prune_thr_v_important_score,
                 self.prune_thr_max_v_important_score, self.prune_thr_count,
-                self.prune_thr_T_alpha, self.v_pow,
+                self.prune_thr_T_alpha, self.prune_thr_T_alpha_avg, self.v_pow,
             )
             ret = ret._replace(remove_mask=remove_mask if ret.remove_mask is None else torch.logical_or(ret.remove_mask, remove_mask))
         return ret
@@ -218,6 +229,7 @@ def BaseImportancePruningTrainer(
         importance_prune_thr_max_v_important_score=None,
         importance_prune_thr_count=1,
         importance_prune_thr_T_alpha=0.1,
+        importance_prune_thr_T_alpha_avg=0.001,
         importance_v_pow=0.1,
         **kwargs):
     return DensificationTrainer(
@@ -235,6 +247,7 @@ def BaseImportancePruningTrainer(
             importance_prune_thr_max_v_important_score=importance_prune_thr_max_v_important_score,
             importance_prune_thr_count=importance_prune_thr_count,
             importance_prune_thr_T_alpha=importance_prune_thr_T_alpha,
+            importance_prune_thr_T_alpha_avg=importance_prune_thr_T_alpha_avg,
             importance_v_pow=importance_v_pow,
         ), *args, **kwargs
     )
