@@ -119,10 +119,12 @@ class VectorQuantizer(AbstractQuantizer):
         return self.one_nearst(model._opacity.detach(), codebook)
 
     def produce_clusters_scaling(self, model: GaussianModel, *args, **kwargs):
-        return self.generate_codebook(model.get_scaling.detach(), self.num_clusters_scaling, *args, **kwargs)
+        centers, ids = self.generate_codebook(model.get_scaling.detach(), self.num_clusters_scaling, *args, **kwargs)
+        centers_log = model.scaling_inverse_activation(centers)
+        return centers_log, ids
 
     def find_nearest_cluster_id_scaling(self, model: GaussianModel, codebook: torch.Tensor):
-        return self.one_nearst(model.get_scaling.detach(), codebook)
+        return self.one_nearst(model.get_scaling.detach(), model.scaling_activation(codebook))
 
     def produce_clusters(self, model: GaussianModel, init_codebook_dict={}):
         codebook_dict: Dict[str, torch.Tensor] = {}
@@ -163,7 +165,7 @@ class VectorQuantizer(AbstractQuantizer):
 
     def dequantize(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor], codebook_dict: Dict[str, torch.Tensor], xyz: torch.Tensor = None, replace=False) -> GaussianModel:
         opacity = codebook_dict["opacity"][ids_dict["opacity"], ...]
-        scaling = model.scaling_inverse_activation(codebook_dict["scaling"][ids_dict["scaling"], ...])
+        scaling = codebook_dict["scaling"][ids_dict["scaling"], ...]
 
         rotation = torch.cat((
             codebook_dict["rotation_re"][ids_dict["rotation_re"], ...],
