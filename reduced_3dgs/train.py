@@ -4,13 +4,13 @@ import shutil
 from typing import List, Tuple
 import torch
 from tqdm import tqdm
-from argparse import Namespace
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset, TrainableCameraDataset
+from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.utils import psnr
-from gaussian_splatting.dataset.colmap import ColmapCameraDataset, ColmapTrainableCameraDataset, colmap_init
+from gaussian_splatting.dataset.colmap import colmap_init
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
+from gaussian_splatting.train import prepare_dataset, save_cfg_args
 from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
 from reduced_3dgs.pruning import PruningTrainer
@@ -81,17 +81,20 @@ def prepare_quantizer(
     return trainer, trainer.quantizer
 
 
-def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, load_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
-    quantizer = None
-    if mode in basemodes:
-        gaussians = VariableSHGaussianModel(sh_degree).to(device)
-        gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-        dataset = (JSONCameraDataset(load_camera, load_depth=load_depth) if load_camera else ColmapCameraDataset(source, load_depth=load_depth)).to(device)
-        modes = basemodes
-    elif mode in cameramodes:
+def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera: bool = False, load_ply: str = None) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
+    if trainable_camera:
         gaussians = CameraTrainableVariableSHGaussianModel(sh_degree).to(device)
         gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-        dataset = (TrainableCameraDataset.from_json(load_camera, load_depth=load_depth) if load_camera else ColmapTrainableCameraDataset(source, load_depth=load_depth)).to(device)
+    else:
+        gaussians = VariableSHGaussianModel(sh_degree).to(device)
+        gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
+    return gaussians
+
+
+def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> AbstractTrainer:
+    if mode in basemodes:
+        modes = basemodes
+    elif mode in cameramodes:
         modes = cameramodes
     else:
         raise ValueError(f"Unknown mode: {mode}")
@@ -114,13 +117,15 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
             dataset=dataset,
             **configs
         )
+        quantizer = None
+    return trainer, quantizer
+
+
+def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, load_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
+    dataset = prepare_dataset(source=source, device=device, trainable_camera=mode in cameramodes, load_camera=load_camera, load_depth=load_depth)
+    gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=mode in cameramodes, load_ply=load_ply)
+    trainer, quantizer = prepare_trainer(gaussians=gaussians, dataset=dataset, mode=mode, with_scale_reg=with_scale_reg, quantize=quantize, load_quantized=load_quantized, configs=configs)
     return dataset, gaussians, trainer, quantizer
-
-
-def save_cfg_args(destination: str, sh_degree: int, source: str):
-    os.makedirs(destination, exist_ok=True)
-    with open(os.path.join(destination, "cfg_args"), 'w') as cfg_log_f:
-        cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
 
 
 def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: AbstractTrainer, quantizer: AbstractQuantizer, destination: str, iteration: int, save_iterations: List[int], device: str, empty_cache_every_step=False):
