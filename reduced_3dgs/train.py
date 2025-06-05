@@ -1,129 +1,22 @@
 import os
 import random
 import shutil
-from typing import List, Tuple
+from typing import List
 import torch
 from tqdm import tqdm
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.utils import psnr
-from gaussian_splatting.dataset.colmap import colmap_init
 from gaussian_splatting.trainer import AbstractTrainer
-from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
-from gaussian_splatting.train import prepare_dataset, save_cfg_args
-from reduced_3dgs.quantization import AbstractQuantizer, VectorQuantizeTrainerWrapper
-from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
-from reduced_3dgs.pruning import PruningTrainer
-from reduced_3dgs.combinations import PrunerInDensifyTrainer, SHCullingDensificationTrainer, SHCullingPruningTrainer, SHCullingPrunerInDensifyTrainer
-from reduced_3dgs.combinations import CameraTrainableVariableSHGaussianModel, CameraSHCullingTrainer, CameraPruningTrainer
-from reduced_3dgs.combinations import CameraPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruningTrainer, CameraSHCullingPruningDensifyTrainer
+from gaussian_splatting.prepare import prepare_dataset
+from gaussian_splatting.train import save_cfg_args
+from reduced_3dgs.quantization import AbstractQuantizer
+from reduced_3dgs.prepare import modes, prepare_gaussians, prepare_trainer
 
 
-basemodes = {
-    "shculling": SHCullingTrainer,
-    "pruning": PruningTrainer,
-    "densify-pruning": PrunerInDensifyTrainer,
-    "densify-shculling": SHCullingDensificationTrainer,
-    "prune-shculling": SHCullingPruningTrainer,
-    "densify-prune-shculling": SHCullingPrunerInDensifyTrainer,
-}
-cameramodes = {
-    "camera-shculling": CameraSHCullingTrainer,
-    "camera-pruning": CameraPruningTrainer,
-    "camera-densify-pruning": CameraPrunerInDensifyTrainer,
-    "camera-densify-shculling": CameraSHCullingDensifyTrainer,
-    "camera-prune-shculling": CameraSHCullingPruningTrainer,
-    "camera-densify-prune-shculling": CameraSHCullingPruningDensifyTrainer,
-}
-
-
-def prepare_quantizer(
-        gaussians: GaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        base_constructor,
-        load_quantized: str = None,
-
-        num_clusters=256,
-        num_clusters_rotation_re=None,
-        num_clusters_rotation_im=None,
-        num_clusters_opacity=None,
-        num_clusters_scaling=None,
-        num_clusters_features_dc=None,
-        num_clusters_features_rest=[],
-
-        quantize_from_iter=5000,
-        quantize_until_iter=30000,
-        quantize_interval=1000,
-        **configs):
-    trainer = VectorQuantizeTrainerWrapper(
-        base_constructor(
-            gaussians,
-            scene_extent=scene_extent,
-            dataset=dataset,
-            **configs
-        ),
-
-        num_clusters=num_clusters,
-        num_clusters_rotation_re=num_clusters_rotation_re,
-        num_clusters_rotation_im=num_clusters_rotation_im,
-        num_clusters_opacity=num_clusters_opacity,
-        num_clusters_scaling=num_clusters_scaling,
-        num_clusters_features_dc=num_clusters_features_dc,
-        num_clusters_features_rest=num_clusters_features_rest,
-
-        quantize_from_iter=quantize_from_iter,
-        quantize_until_iter=quantize_until_iter,
-        quantize_interval=quantize_interval,
-    )
-    if load_quantized:
-        trainer.quantizer.load_quantized(load_quantized)
-    return trainer, trainer.quantizer
-
-
-def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera: bool = False, load_ply: str = None) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
-    if trainable_camera:
-        gaussians = CameraTrainableVariableSHGaussianModel(sh_degree).to(device)
-        gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-    else:
-        gaussians = VariableSHGaussianModel(sh_degree).to(device)
-        gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-    return gaussians
-
-
-def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> AbstractTrainer:
-    if mode in basemodes:
-        modes = basemodes
-    elif mode in cameramodes:
-        modes = cameramodes
-    else:
-        raise ValueError(f"Unknown mode: {mode}")
-    constructor = modes[mode]
-    if with_scale_reg:
-        constructor = lambda *args, **kwargs: ScaleRegularizeTrainerWrapper(modes[mode], *args, **kwargs)
-    if quantize:
-        trainer, quantizer = prepare_quantizer(
-            gaussians,
-            scene_extent=dataset.scene_extent(),
-            dataset=dataset,
-            base_constructor=modes[mode],
-            load_quantized=load_quantized,
-            **configs
-        )
-    else:
-        trainer = constructor(
-            gaussians,
-            scene_extent=dataset.scene_extent(),
-            dataset=dataset,
-            **configs
-        )
-        quantizer = None
-    return trainer, quantizer
-
-
-def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str = None, load_camera: str = None, load_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
-    dataset = prepare_dataset(source=source, device=device, trainable_camera=mode in cameramodes, load_camera=load_camera, load_depth=load_depth)
-    gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=mode in cameramodes, load_ply=load_ply)
+def prepare_training(sh_degree: int, source: str, device: str, mode: str, trainable_camera: bool = False, load_ply: str = None, load_camera: str = None, load_depth=False, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}):
+    dataset = prepare_dataset(source=source, device=device, trainable_camera=trainable_camera, load_camera=load_camera, load_depth=load_depth)
+    gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=trainable_camera, load_ply=load_ply)
     trainer, quantizer = prepare_trainer(gaussians=gaussians, dataset=dataset, mode=mode, with_scale_reg=with_scale_reg, quantize=quantize, load_quantized=load_quantized, configs=configs)
     return dataset, gaussians, trainer, quantizer
 
@@ -166,7 +59,7 @@ def training(dataset: CameraDataset, gaussians: GaussianModel, trainer: Abstract
 
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser, Namespace
+    from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument("--sh_degree", default=3, type=int)
     parser.add_argument("-s", "--source", required=True, type=str)
@@ -178,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_depth_data", action='store_true')
     parser.add_argument("--with_scale_reg", action="store_true")
     parser.add_argument("--load_quantized", default=None, type=str)
-    parser.add_argument("--mode", choices=list(basemodes.keys()) + list(cameramodes.keys()), default="densify-prune-shculling")
+    parser.add_argument("--mode", choices=list(modes), default="densify-prune-shculling")
     parser.add_argument("--save_iterations", nargs="+", type=int, default=[7000, 30000])
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--empty_cache_every_step", action='store_true')
@@ -189,7 +82,7 @@ if __name__ == "__main__":
 
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
     dataset, gaussians, trainer, quantizer = prepare_training(
-        sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
+        sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode, trainable_camera="camera" in args.mode,
         load_ply=args.load_ply, load_camera=args.load_camera, load_depth=not args.no_depth_data, with_scale_reg=args.with_scale_reg,
         quantize=args.quantize, load_quantized=args.load_quantized, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
