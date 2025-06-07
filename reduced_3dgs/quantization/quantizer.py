@@ -206,8 +206,7 @@ class VectorQuantizer(AbstractQuantizer):
             ids_dict = self.find_nearest_cluster_id(model, self._codebook_dict)
         return ids_dict, codebook_dict
 
-    def save_quantized(self, model: GaussianModel, ply_path: str):
-        ids_dict, codebook_dict = self.quantize(model, update_codebook=False)
+    def ply_dtype(self, max_sh_degree: int):
         dtype_full = [
             ('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -217,13 +216,16 @@ class VectorQuantizer(AbstractQuantizer):
             ('scale', self.force_code_dtype or compute_uint_dtype(self.num_clusters_scaling)),
             ('f_dc', self.force_code_dtype or compute_uint_dtype(self.num_clusters_features_dc)),
         ]
-        for sh_degree in range(model.max_sh_degree):
+        for sh_degree in range(max_sh_degree):
             force_code_dtype = self.force_code_dtype or compute_uint_dtype(self.num_clusters_features_rest[sh_degree])
             dtype_full.extend([
                 (f'f_rest_{sh_degree}_0', force_code_dtype),
                 (f'f_rest_{sh_degree}_1', force_code_dtype),
                 (f'f_rest_{sh_degree}_2', force_code_dtype),
             ])
+        return dtype_full
+
+    def ply_data(self, model: GaussianModel, ids_dict: Dict[str, torch.Tensor]):
         data_full = [
             *np.array_split(model._xyz.detach().cpu().numpy(), 3, axis=1),
             *np.array_split(torch.zeros_like(model._xyz).detach().cpu().numpy(), 3, axis=1),
@@ -236,6 +238,12 @@ class VectorQuantizer(AbstractQuantizer):
         for sh_degree in range(model.max_sh_degree):
             features_rest = ids_dict[f'features_rest_{sh_degree}'].cpu().numpy()
             data_full.extend(np.array_split(features_rest, 3, axis=1))
+        return data_full
+
+    def save_quantized(self, model: GaussianModel, ply_path: str):
+        ids_dict, codebook_dict = self.quantize(model, update_codebook=False)
+        dtype_full = self.ply_dtype(model.max_sh_degree)
+        data_full = self.ply_data(model, ids_dict)
 
         elements = np.rec.fromarrays([data.squeeze(-1) for data in data_full], dtype=dtype_full)
         el = PlyElement.describe(elements, 'vertex')

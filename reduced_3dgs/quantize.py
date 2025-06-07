@@ -13,6 +13,7 @@ def copy_not_exists(source, destination):
 
 
 def quantize(source, destination, iteration, sh_degree, device, **kwargs):
+    os.makedirs(destination, exist_ok=True)
     copy_not_exists(os.path.join(source, "cfg_args"), os.path.join(destination, "cfg_args"))
     copy_not_exists(os.path.join(source, "cameras.json"), os.path.join(destination, "cameras.json"))
 
