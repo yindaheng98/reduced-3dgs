@@ -262,36 +262,46 @@ class VectorQuantizer(AbstractQuantizer):
 
         PlyData([el, *cb]).write(ply_path)
 
-    def load_quantized(self, model: GaussianModel, ply_path: str) -> GaussianModel:
-        plydata = PlyData.read(ply_path)
-
+    def parse_ids(self, plydata: PlyData, max_sh_degree: int, device: torch.device) -> Dict[str, torch.Tensor]:
         ids_dict = {}
         elements = plydata['vertex']
-        kwargs = dict(dtype=torch.long, device=model._xyz.device)
+        kwargs = dict(dtype=torch.long, device=device)
         ids_dict["rotation_re"] = torch.tensor(elements["rot_re"].copy(), **kwargs)
         ids_dict["rotation_im"] = torch.tensor(elements["rot_im"].copy(), **kwargs)
         ids_dict["opacity"] = torch.tensor(elements["opacity"].copy(), **kwargs)
         ids_dict["scaling"] = torch.tensor(elements["scale"].copy(), **kwargs)
         ids_dict["features_dc"] = torch.tensor(elements["f_dc"].copy(), **kwargs).unsqueeze(-1)
-        for sh_degree in range(model.max_sh_degree):
+        for sh_degree in range(max_sh_degree):
             ids_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([elements[f'f_rest_{sh_degree}_{ch}'] for ch in range(3)], axis=1), **kwargs)
+        return ids_dict
 
+    def parse_codebook(self, plydata: PlyData, max_sh_degree: int, device: torch.device) -> Dict[str, torch.Tensor]:
         codebook_dict = {}
-        kwargs = dict(dtype=torch.float32, device=model._xyz.device)
+        kwargs = dict(dtype=torch.float32, device=device)
         codebook_dict["rotation_re"] = torch.tensor(plydata["codebook_rot_re"]["rot_re"], **kwargs).unsqueeze(-1)
         codebook_dict["rotation_im"] = torch.tensor(np.stack([plydata["codebook_rot_im"][f'rot_im_{ch}'] for ch in range(3)], axis=1), **kwargs)
         codebook_dict["opacity"] = torch.tensor(plydata["codebook_opacity"]["opacity"], **kwargs).unsqueeze(-1)
         codebook_dict["scaling"] = torch.tensor(np.stack([plydata["codebook_scaling"][f'scaling_{ch}'] for ch in range(3)], axis=1), **kwargs)
         codebook_dict["features_dc"] = torch.tensor(np.stack([plydata["codebook_f_dc"][f'f_dc_{ch}'] for ch in range(3)], axis=1), **kwargs)
-        for sh_degree in range(model.max_sh_degree):
+        for sh_degree in range(max_sh_degree):
             n_channels = (sh_degree + 2) ** 2 - (sh_degree + 1) ** 2
             codebook_dict[f'features_rest_{sh_degree}'] = torch.tensor(np.stack([plydata[f"codebook_f_rest_{sh_degree}"][f'f_rest_{sh_degree}_{ch}'] for ch in range(n_channels)], axis=1), **kwargs)
+        return codebook_dict
 
-        self._codebook_dict = codebook_dict
-
+    def parse_xyz(self, plydata: PlyData, device: torch.device) -> torch.Tensor:
+        elements = plydata['vertex']
+        kwargs = dict(dtype=torch.float32, device=device)
         xyz = torch.stack([
             torch.tensor(elements["x"].copy(), **kwargs),
             torch.tensor(elements["y"].copy(), **kwargs),
             torch.tensor(elements["z"].copy(), **kwargs),
         ], dim=1)
+        return xyz
+
+    def load_quantized(self, model: GaussianModel, ply_path: str) -> GaussianModel:
+        plydata = PlyData.read(ply_path)
+        ids_dict = self.parse_ids(plydata, model.max_sh_degree, model._xyz.device)
+        codebook_dict = self.parse_codebook(plydata, model.max_sh_degree, model._xyz.device)
+        xyz = self.parse_xyz(plydata, model._xyz.device)
+        self._codebook_dict = codebook_dict
         return self.dequantize(model, ids_dict, codebook_dict, xyz=xyz, replace=True)
