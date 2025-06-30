@@ -97,11 +97,17 @@ def BaseFullPrunerInDensifyTrainer(
 
 
 def DepthFullPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BaseFullPruningTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
+    return DepthTrainerWrapper(
+        BaseFullPruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs)
 
 
 def DepthFullPrunerInDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BaseFullPrunerInDensifyTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
+    return DepthTrainerWrapper(
+        BaseFullPrunerInDensifyTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs)
 
 
 def OpacityResetPruningTrainer(

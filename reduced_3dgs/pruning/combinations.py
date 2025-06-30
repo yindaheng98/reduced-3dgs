@@ -54,11 +54,17 @@ def BasePrunerInDensifyTrainer(
 
 
 def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BasePruningTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
+    return DepthTrainerWrapper(
+        BasePruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs)
 
 
 def DepthPrunerInDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(BasePrunerInDensifyTrainer, model, scene_extent, *args, dataset=dataset, **kwargs)
+    return DepthTrainerWrapper(
+        BasePrunerInDensifyTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs)
 
 
 PruningTrainer = DepthPruningTrainer
