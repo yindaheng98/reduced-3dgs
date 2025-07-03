@@ -4,7 +4,15 @@ from typing import Dict, Tuple
 import torch
 import torch.nn as nn
 import numpy as np
-from sklearn.cluster import MiniBatchKMeans as KMeans
+try:
+    from cuml.cluster import KMeans
+    kmeans_init = 'k-means||'
+except ImportError:
+    print("Cuml not found, using sklearn's MiniBatchKMeans for quantization.")
+    from sklearn.cluster import MiniBatchKMeans
+    from functools import partial
+    KMeans = partial(MiniBatchKMeans, batch_size=256 * os.cpu_count())
+    kmeans_init = 'k-means++'
 from gaussian_splatting import GaussianModel
 from plyfile import PlyData, PlyElement
 import numpy as np
@@ -65,9 +73,8 @@ class VectorQuantizer(AbstractQuantizer):
     def generate_codebook(self, values: torch.Tensor, num_clusters, init_codebook=None):
         kmeans = KMeans(
             n_clusters=num_clusters, tol=self.tol, max_iter=self.max_iter,
-            init='k-means++' if init_codebook is None else init_codebook.cpu().numpy(),
-            random_state=0, n_init="auto", verbose=0,
-            batch_size=256 * os.cpu_count()
+            init=kmeans_init if init_codebook is None else init_codebook.cpu().numpy(),
+            random_state=0, n_init="auto", verbose=1,
         )
         ids = torch.tensor(kmeans.fit_predict(values.cpu().numpy()), device=values.device)
         centers = torch.tensor(kmeans.cluster_centers_, dtype=values.dtype, device=values.device)
