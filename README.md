@@ -13,6 +13,7 @@ This repository contains the **refactored Python code for [Reduced-3DGS](https:/
 
 * [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
+* (Optional) [cuML](https://github.com/rapidsai/cuml) for faster vector quantization
 
 (Optional) If you have trouble with [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting), try to install it from source:
 ```sh
