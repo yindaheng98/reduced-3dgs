@@ -14,44 +14,31 @@ This repository contains the **refactored Python code for [Reduced-3DGS](https:/
 * [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
 
-## Install (PyPI)
-
+(Optional) If you have trouble with [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting), try to install it from source:
 ```sh
+pip install wheel setuptools
+pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master --no-build-isolation
+```
+
+## PyPI Install
+
+```shell
 pip install --upgrade reduced-3dgs
 ```
-
-## Install (Build from source)
-
-```sh
-pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
-```
-If you have trouble with [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting), you can install it from source:
-```sh
-pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
-```
-
-## Install (Development)
-
-Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting).
-You can download the wheel from [PyPI](https://pypi.org/project/gaussian-splatting/):
+or
+build latest from source:
 ```shell
-pip install --upgrade gaussian-splatting
+pip install wheel setuptools
+pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main --no-build-isolation
 ```
-Alternatively, install the latest version from the source:
-```sh
-pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
-```
+
+### Development Install
 
 ```shell
 git clone --recursive https://github.com/yindaheng98/reduced-3dgs
 cd reduced-3dgs
-pip install tqdm plyfile scikit-learn numpy tifffile triton xformers
+pip install scikit-learn
 pip install --target . --upgrade --no-deps .
-```
-
-(Optional) If you prefer not to install `gaussian-splatting` in your environment, you can install it in your `reduced-3dgs` directory:
-```sh
-pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 ```
 
 ## Quick Start
