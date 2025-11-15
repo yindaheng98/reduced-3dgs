@@ -18,6 +18,7 @@
                 "--mode",
                 "densify-prune-shculling",
                 "--with_scale_reg",
+                "-odensify_grad_threshold=0.0001",
                 "--empty_cache_every_step",
             ]
         },
@@ -39,6 +40,7 @@
                 "camera-densify-prune-shculling",
                 // "camera-prune-shculling",
                 "--with_scale_reg",
+                "-odensify_grad_threshold=0.0001",
                 "--empty_cache_every_step",
                 "-oscale_reg_thr_scale=1.0", // scale_reg_thr_scale < densify_percent_too_big cause bad quality
                 "-odepth_l1_weight_init=1.0",
@@ -66,6 +68,7 @@
                 "--mode",
                 "densify-prune-shculling",
                 "--with_scale_reg",
+                "-odensify_grad_threshold=0.0001",
                 "--empty_cache_every_step",
                 "--quantize",
                 "-onum_clusters_scaling=1024",
