@@ -6,9 +6,13 @@ from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
 from reduced_3dgs.quantization import VectorQuantizeTrainerWrapper
 from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
 from reduced_3dgs.pruning import PruningTrainer
-from reduced_3dgs.combinations import PrunerInDensifyTrainer, SHCullingDensificationTrainer, SHCullingPruningTrainer, SHCullingPrunerInDensifyTrainer
+from reduced_3dgs.combinations import SHCullingPruningTrainer
+from reduced_3dgs.combinations import PrunerInDensifyTrainer, SHCullingDensificationTrainer, SHCullingPrunerInDensifyTrainer
+from reduced_3dgs.combinations import PrunerInAdaptiveDensifyTrainer, SHCullingAdaptiveDensificationTrainer, SHCullingPrunerInAdaptiveDensifyTrainer
 from reduced_3dgs.combinations import CameraTrainableVariableSHGaussianModel, CameraSHCullingTrainer, CameraPruningTrainer
-from reduced_3dgs.combinations import CameraPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPruningTrainer, CameraSHCullingPruningDensifyTrainer
+from reduced_3dgs.combinations import CameraSHCullingPruningTrainer
+from reduced_3dgs.combinations import CameraPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPrunerInDensifyTrainer
+from reduced_3dgs.combinations import CameraPrunerInAdaptiveDensifyTrainer, CameraSHCullingAdaptiveDensifyTrainer, CameraSHCullingPrunerInAdaptiveDensifyTrainer
 
 
 def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera: bool = False, load_ply: str = None) -> GaussianModel:
@@ -25,15 +29,21 @@ modes = {
     "shculling": SHCullingTrainer,
     "pruning": PruningTrainer,
     "densify-pruning": PrunerInDensifyTrainer,
+    "adaptivedensify-pruning": PrunerInAdaptiveDensifyTrainer,
     "densify-shculling": SHCullingDensificationTrainer,
+    "adaptivedensify-shculling": SHCullingAdaptiveDensificationTrainer,
     "prune-shculling": SHCullingPruningTrainer,
     "densify-prune-shculling": SHCullingPrunerInDensifyTrainer,
+    "adaptivedensify-prune-shculling": SHCullingPrunerInAdaptiveDensifyTrainer,
     "camera-shculling": CameraSHCullingTrainer,
     "camera-pruning": CameraPruningTrainer,
     "camera-densify-pruning": CameraPrunerInDensifyTrainer,
+    "camera-adaptivedensify-pruning": CameraPrunerInAdaptiveDensifyTrainer,
     "camera-densify-shculling": CameraSHCullingDensifyTrainer,
+    "camera-adaptivedensify-shculling": CameraSHCullingAdaptiveDensifyTrainer,
     "camera-prune-shculling": CameraSHCullingPruningTrainer,
-    "camera-densify-prune-shculling": CameraSHCullingPruningDensifyTrainer,
+    "camera-densify-prune-shculling": CameraSHCullingPrunerInDensifyTrainer,
+    "camera-adaptivedensify-prune-shculling": CameraSHCullingPrunerInAdaptiveDensifyTrainer,
 }
 
 
