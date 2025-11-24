@@ -1,4 +1,3 @@
 from .trainer import BasePruner, BasePruningTrainer, PruningTrainerWrapper
 from .combinations import PruningTrainer
 from .combinations import BasePrunerInDensifyTrainer, PrunerInDensifyTrainer, PrunerInDensifyTrainerWrapper
-from .combinations import BasePrunerInAdaptiveDensifyTrainer, PrunerInAdaptiveDensifyTrainer, PrunerInAdaptiveDensifyTrainerWrapper

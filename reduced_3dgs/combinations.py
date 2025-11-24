@@ -1,13 +1,13 @@
 from typing import List
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
-from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetAdaptiveDensificationTrainer
+from gaussian_splatting.trainer import OpacityResetDensificationTrainer
 # from gaussian_splatting.trainer import BaseOpacityResetDensificationTrainer as OpacityResetDensificationTrainer
 from gaussian_splatting.trainer import OpacityResetTrainerWrapper, CameraTrainerWrapper, NoopDensifier, DepthTrainerWrapper
 from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper
 from .shculling import SHCullingTrainer
 # from .shculling import BaseSHCullingTrainer as SHCullingTrainer
-from .pruning import PruningTrainerWrapper, PrunerInDensifyTrainerWrapper, PrunerInAdaptiveDensifyTrainerWrapper
+from .pruning import PruningTrainerWrapper, PrunerInDensifyTrainerWrapper
 # from .pruning import BasePruningTrainer as PruningTrainer, BasePrunerInDensifyTrainer as PrunerInDensifyTrainer
 from .importance import ImportancePruner
 
@@ -96,48 +96,6 @@ def BaseFullPrunerInDensifyTrainer(
     )
 
 
-def BaseFullPrunerInAdaptiveDensifyTrainer(
-        model: GaussianModel,
-        scene_extent: float,
-        dataset: List[Camera],
-        *args,
-        importance_prune_from_iter=15000,
-        importance_prune_until_iter=20000,
-        importance_prune_interval: int = 1000,
-        importance_score_resize=None,
-        importance_prune_type="comprehensive",
-        importance_prune_percent=0.1,
-        importance_prune_thr_important_score=None,
-        importance_prune_thr_v_important_score=3.0,
-        importance_prune_thr_max_v_important_score=None,
-        importance_prune_thr_count=1,
-        importance_prune_thr_T_alpha=1.0,
-        importance_prune_thr_T_alpha_avg=0.001,
-        importance_v_pow=0.1,
-        **kwargs):
-    return PrunerInAdaptiveDensifyTrainerWrapper(
-        lambda model, scene_extent, dataset: ImportancePruner(
-            NoopDensifier(model),
-            dataset,
-            importance_prune_from_iter=importance_prune_from_iter,
-            importance_prune_until_iter=importance_prune_until_iter,
-            importance_prune_interval=importance_prune_interval,
-            importance_score_resize=importance_score_resize,
-            importance_prune_type=importance_prune_type,
-            importance_prune_percent=importance_prune_percent,
-            importance_prune_thr_important_score=importance_prune_thr_important_score,
-            importance_prune_thr_v_important_score=importance_prune_thr_v_important_score,
-            importance_prune_thr_max_v_important_score=importance_prune_thr_max_v_important_score,
-            importance_prune_thr_count=importance_prune_thr_count,
-            importance_prune_thr_T_alpha=importance_prune_thr_T_alpha,
-            importance_prune_thr_T_alpha_avg=importance_prune_thr_T_alpha_avg,
-            importance_v_pow=importance_v_pow,
-        ),
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
 def DepthFullPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
     return DepthTrainerWrapper(
         BaseFullPruningTrainer,
@@ -148,13 +106,6 @@ def DepthFullPruningTrainer(model: GaussianModel, scene_extent: float, dataset: 
 def DepthFullPrunerInDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
     return DepthTrainerWrapper(
         BaseFullPrunerInDensifyTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
-
-
-def DepthFullPrunerInAdaptiveDensifyTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(
-        BaseFullPrunerInAdaptiveDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs)
 
@@ -183,21 +134,8 @@ def OpacityResetPrunerInDensifyTrainer(
     )
 
 
-def OpacityResetPrunerInAdaptiveDensifyTrainer(
-        model: GaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        *args, **kwargs):
-    return OpacityResetTrainerWrapper(
-        lambda model, scene_extent, *args, **kwargs: DepthFullPrunerInAdaptiveDensifyTrainer(model, scene_extent, dataset, *args, **kwargs),
-        model, scene_extent,
-        *args, **kwargs
-    )
-
-
 PruningTrainer = OpacityResetPruningTrainer
 PrunerInDensifyTrainer = OpacityResetPrunerInDensifyTrainer
-PrunerInAdaptiveDensifyTrainer = OpacityResetPrunerInAdaptiveDensifyTrainer
 
 
 def SHCullingDensificationTrainer(
@@ -207,18 +145,6 @@ def SHCullingDensificationTrainer(
         *args, **kwargs):
     return SHCullingTrainerWrapper(
         lambda model, scene_extent, dataset, *args, **kwargs: OpacityResetDensificationTrainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def SHCullingAdaptiveDensificationTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        *args, **kwargs):
-    return SHCullingTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: OpacityResetAdaptiveDensificationTrainer(model, scene_extent, *args, **kwargs),
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -243,18 +169,6 @@ def SHCullingPrunerInDensifyTrainer(
         *args, **kwargs):
     return SHCullingTrainerWrapper(
         OpacityResetPrunerInDensifyTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def SHCullingPrunerInAdaptiveDensifyTrainer(
-    model: VariableSHGaussianModel,
-        scene_extent: float,
-        dataset: CameraDataset,
-        *args, **kwargs):
-    return SHCullingTrainerWrapper(
-        OpacityResetPrunerInAdaptiveDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -301,18 +215,6 @@ def CameraPrunerInDensifyTrainer(
     )
 
 
-def CameraPrunerInAdaptiveDensifyTrainer(
-        model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
-        dataset: TrainableCameraDataset,
-        *args, **kwargs):
-    return CameraTrainerWrapper(
-        OpacityResetPrunerInAdaptiveDensifyTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
 def CameraSHCullingDensifyTrainer(
         model: CameraTrainableVariableSHGaussianModel,
         scene_extent: float,
@@ -320,18 +222,6 @@ def CameraSHCullingDensifyTrainer(
         *args, **kwargs):
     return CameraTrainerWrapper(
         SHCullingDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def CameraSHCullingAdaptiveDensifyTrainer(
-        model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
-        dataset: TrainableCameraDataset,
-        *args, **kwargs):
-    return CameraTrainerWrapper(
-        SHCullingAdaptiveDensificationTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -356,18 +246,6 @@ def CameraSHCullingPrunerInDensifyTrainer(
         *args, **kwargs):
     return CameraTrainerWrapper(
         SHCullingPrunerInDensifyTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-def CameraSHCullingPrunerInAdaptiveDensifyTrainer(
-        model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
-        dataset: TrainableCameraDataset,
-        *args, **kwargs):
-    return CameraTrainerWrapper(
-        SHCullingPrunerInAdaptiveDensifyTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
