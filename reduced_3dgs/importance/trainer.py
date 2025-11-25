@@ -1,5 +1,5 @@
 import math
-from typing import List
+from typing import Callable, List
 import torch
 
 from gaussian_splatting import Camera, GaussianModel
@@ -228,7 +228,8 @@ class ImportancePruner(DensifierWrapper):
         return ret
 
 
-def BaseImportancePruningTrainer(
+def ImportancePruningTrainerWrapper(
+        noargs_base_densifier_constructor: Callable[[GaussianModel, float, List[Camera]], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
@@ -247,23 +248,38 @@ def BaseImportancePruningTrainer(
         importance_prune_thr_T_alpha_avg=0.001,
         importance_v_pow=0.1,
         **kwargs):
+    densifier = noargs_base_densifier_constructor(model, scene_extent, dataset)
+    densifier = ImportancePruner(
+        densifier,
+        dataset,
+        importance_prune_from_iter=importance_prune_from_iter,
+        importance_prune_until_iter=importance_prune_until_iter,
+        importance_prune_interval=importance_prune_interval,
+        importance_score_resize=importance_score_resize,
+        importance_prune_type=importance_prune_type,
+        importance_prune_percent=importance_prune_percent,
+        importance_prune_thr_important_score=importance_prune_thr_important_score,
+        importance_prune_thr_v_important_score=importance_prune_thr_v_important_score,
+        importance_prune_thr_max_v_important_score=importance_prune_thr_max_v_important_score,
+        importance_prune_thr_count=importance_prune_thr_count,
+        importance_prune_thr_T_alpha=importance_prune_thr_T_alpha,
+        importance_prune_thr_T_alpha_avg=importance_prune_thr_T_alpha_avg,
+        importance_v_pow=importance_v_pow,
+    )
     return DensificationTrainer(
         model, scene_extent,
-        ImportancePruner(
-            NoopDensifier(model),
-            dataset,
-            importance_prune_from_iter=importance_prune_from_iter,
-            importance_prune_until_iter=importance_prune_until_iter,
-            importance_prune_interval=importance_prune_interval,
-            importance_score_resize=importance_score_resize,
-            importance_prune_type=importance_prune_type,
-            importance_prune_percent=importance_prune_percent,
-            importance_prune_thr_important_score=importance_prune_thr_important_score,
-            importance_prune_thr_v_important_score=importance_prune_thr_v_important_score,
-            importance_prune_thr_max_v_important_score=importance_prune_thr_max_v_important_score,
-            importance_prune_thr_count=importance_prune_thr_count,
-            importance_prune_thr_T_alpha=importance_prune_thr_T_alpha,
-            importance_prune_thr_T_alpha_avg=importance_prune_thr_T_alpha_avg,
-            importance_v_pow=importance_v_pow,
-        ), *args, **kwargs
+        densifier,
+        *args, **kwargs
+    )
+
+
+def BaseImportancePruningTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        dataset: List[Camera],
+        *args, **kwargs):
+    return ImportancePruningTrainerWrapper(
+        lambda model, scene_extent, dataset: NoopDensifier(model),
+        model, scene_extent, dataset,
+        *args, **kwargs
     )
