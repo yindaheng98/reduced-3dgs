@@ -36,7 +36,7 @@ def BaseReducedDensificationTrainer(
         dataset: List[Camera],
         *args, **kwargs):
     return ReducedDensificationTrainerWrapper(
-        lambda model, scene_extent, dataset: NoopDensifier(model),
+        lambda model, *args, **kwargs: NoopDensifier(model),
         model, scene_extent, dataset,
         *args, **kwargs
     )
