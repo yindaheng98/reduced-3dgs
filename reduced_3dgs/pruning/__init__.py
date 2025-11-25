@@ -1,3 +1,3 @@
-from .trainer import BasePruner, BasePruningTrainer, PruningTrainerWrapper
-from .combinations import PruningTrainer
-from .combinations import BasePrunerInDensifyTrainer, PrunerInDensifyTrainer, PrunerInDensifyTrainerWrapper
+from .trainer import BasePruner, PruningDensifierWrapper, PruningTrainerWrapper, BasePruningTrainer
+from .combinations import ReducedDensificationDensifierWrapper, ReducedDensificationTrainerWrapper, BaseReducedDensificationTrainer
+from .combinations import PruningTrainer, ReducedDensificationTrainer
