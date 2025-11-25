@@ -117,19 +117,22 @@ def PruningTrainerWrapper(
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
         **kwargs):
+    densifier = noargs_base_densifier_constructor(model, scene_extent, dataset)
+    densifier = BasePruner(
+        densifier,
+        scene_extent,
+        dataset,
+        prune_from_iter=prune_from_iter,
+        prune_until_iter=prune_until_iter,
+        prune_interval=prune_interval,
+        box_size=box_size,
+        lambda_mercy=lambda_mercy,
+        mercy_minimum=mercy_minimum,
+        mercy_type=mercy_type,
+    )
     return DensificationTrainer(
         model, scene_extent,
-        BasePruner(
-            noargs_base_densifier_constructor(model, scene_extent, dataset),
-            scene_extent, dataset,
-            prune_from_iter=prune_from_iter,
-            prune_until_iter=prune_until_iter,
-            prune_interval=prune_interval,
-            box_size=box_size,
-            lambda_mercy=lambda_mercy,
-            mercy_minimum=mercy_minimum,
-            mercy_type=mercy_type,
-        ), *args, **kwargs
+        densifier, *args, **kwargs
     )
 
 
