@@ -1,11 +1,12 @@
-from typing import List
+from typing import Callable, List
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
-from gaussian_splatting.trainer import DepthTrainerWrapper, NoopDensifier, DensificationTrainerWrapper
-from .trainer import ImportancePruner, BaseImportancePruningTrainer
+from gaussian_splatting.trainer import AbstractDensifier, DepthTrainerWrapper, NoopDensifier, DensificationTrainerWrapper
+from .trainer import ImportancePruningTrainerWrapper, BaseImportancePruningTrainer
 
 
-def BaseImportancePrunerInDensifyTrainer(
+def ImportancePrunerInDensifyTrainerWrapper(
+        noargs_base_densifier_constructor: Callable[[GaussianModel, float, List[Camera]], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
@@ -25,9 +26,9 @@ def BaseImportancePrunerInDensifyTrainer(
         importance_v_pow=0.1,
         **kwargs):
     return DensificationTrainerWrapper(
-        lambda model, scene_extent: ImportancePruner(
-            NoopDensifier(model),
-            dataset,
+        lambda model, scene_extent: ImportancePruningTrainerWrapper(
+            noargs_base_densifier_constructor,
+            model, scene_extent, dataset,
             importance_prune_from_iter=importance_prune_from_iter,
             importance_prune_until_iter=importance_prune_until_iter,
             importance_prune_interval=importance_prune_interval,
@@ -42,8 +43,19 @@ def BaseImportancePrunerInDensifyTrainer(
             importance_prune_thr_T_alpha_avg=importance_prune_thr_T_alpha_avg,
             importance_v_pow=importance_v_pow,
         ),
-        model,
-        scene_extent,
+        model, scene_extent,
+        *args, **kwargs
+    )
+
+
+def BaseImportancePrunerInDensifyTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        dataset: List[Camera],
+        *args, **kwargs):
+    return ImportancePrunerInDensifyTrainerWrapper(
+        lambda model, scene_extent, dataset: NoopDensifier(model),
+        model, scene_extent, dataset,
         *args, **kwargs
     )
 
