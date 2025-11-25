@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Callable, List
 import torch
 from gaussian_splatting import GaussianModel, Camera
@@ -103,36 +104,50 @@ class BasePruner(OpacityPruner):
         return prune_mask
 
 
-def PruningTrainerWrapper(
-        noargs_base_densifier_constructor: Callable[[GaussianModel, float, List[Camera]], AbstractDensifier],
+def PruningDensifierWrapper(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
         *args,
-        prune_from_iter=1000,
-        prune_until_iter=15000,
-        prune_interval: int = 100,
         box_size=1.,
         lambda_mercy=1.,
         mercy_minimum=3,
         mercy_type='redundancy_opacity',
+        # copy from OpacityPruner
+        prune_from_iter=1000,
+        prune_until_iter=15000,
+        prune_interval=100,
+        prune_screensize_threshold=20,
+        prune_percent_too_big=1,
+        prune_opacity_threshold=0.005,
+        # copy from OpacityPruner
         **kwargs):
-    densifier = noargs_base_densifier_constructor(model, scene_extent, dataset)
-    densifier = BasePruner(
-        densifier,
+    return BasePruner(
+        base_densifier_constructor(model, scene_extent, *args, **kwargs),
         scene_extent,
         dataset,
-        prune_from_iter=prune_from_iter,
-        prune_until_iter=prune_until_iter,
-        prune_interval=prune_interval,
         box_size=box_size,
         lambda_mercy=lambda_mercy,
         mercy_minimum=mercy_minimum,
         mercy_type=mercy_type,
+        prune_from_iter=prune_from_iter,
+        prune_until_iter=prune_until_iter,
+        prune_interval=prune_interval,
+        prune_screensize_threshold=prune_screensize_threshold,
+        prune_percent_too_big=prune_percent_too_big,
+        prune_opacity_threshold=prune_opacity_threshold,
     )
-    return DensificationTrainer(
-        model, scene_extent,
-        densifier, *args, **kwargs
+
+
+def PruningTrainerWrapper(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
+        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        *args, **kwargs):
+    return DensificationTrainer.from_densifier_constructor(
+        partial(PruningDensifierWrapper, base_densifier_constructor),
+        model, scene_extent, dataset
+        * args, **kwargs
     )
 
 
@@ -142,7 +157,7 @@ def BasePruningTrainer(
         dataset: List[Camera],
         *args, **kwargs):
     return PruningTrainerWrapper(
-        lambda model, scene_extent, dataset: NoopDensifier(model),
+        lambda model, *args, **kwargs: NoopDensifier(model),
         model, scene_extent, dataset,
         *args, **kwargs
     )

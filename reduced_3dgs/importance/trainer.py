@@ -1,3 +1,4 @@
+from functools import partial
 import math
 from typing import Callable, List
 import torch
@@ -228,8 +229,8 @@ class ImportancePruner(DensifierWrapper):
         return ret
 
 
-def ImportancePruningTrainerWrapper(
-        noargs_base_densifier_constructor: Callable[[GaussianModel, float, List[Camera]], AbstractDensifier],
+def ImportancePruningDensifierWrapper(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
@@ -248,9 +249,9 @@ def ImportancePruningTrainerWrapper(
         importance_prune_thr_T_alpha_avg=0.001,
         importance_v_pow=0.1,
         **kwargs):
-    densifier = noargs_base_densifier_constructor(model, scene_extent, dataset)
-    densifier = ImportancePruner(
-        densifier,
+    return ImportancePruner(
+        base_densifier_constructor(model, scene_extent, dataset, *args, **kwargs),
+        scene_extent,
         dataset,
         importance_prune_from_iter=importance_prune_from_iter,
         importance_prune_until_iter=importance_prune_until_iter,
@@ -266,10 +267,16 @@ def ImportancePruningTrainerWrapper(
         importance_prune_thr_T_alpha_avg=importance_prune_thr_T_alpha_avg,
         importance_v_pow=importance_v_pow,
     )
-    return DensificationTrainer(
-        model, scene_extent,
-        densifier,
-        *args, **kwargs
+
+
+def ImportancePruningTrainerWrapper(
+        base_densifier_constructor: Callable[..., AbstractDensifier],
+        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        *args, **kwargs):
+    return DensificationTrainer.from_densifier_constructor(
+        partial(ImportancePruningDensifierWrapper, base_densifier_constructor),
+        model, scene_extent, dataset
+        * args, **kwargs
     )
 
 
@@ -279,7 +286,7 @@ def BaseImportancePruningTrainer(
         dataset: List[Camera],
         *args, **kwargs):
     return ImportancePruningTrainerWrapper(
-        lambda model, scene_extent, dataset: NoopDensifier(model),
+        lambda model, *args, **kwargs: NoopDensifier(model),
         model, scene_extent, dataset,
         *args, **kwargs
     )
