@@ -141,7 +141,7 @@ def BasePruningTrainer(
         scene_extent: float,
         dataset: List[Camera],
         *args, **kwargs):
-    return DensificationTrainer(
+    return PruningTrainerWrapper(
         lambda model, scene_extent, dataset: NoopDensifier(model),
         model, scene_extent, dataset,
         *args, **kwargs
