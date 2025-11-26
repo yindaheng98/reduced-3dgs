@@ -42,7 +42,7 @@ def _low_distance_colour_culling(self: VariableSHGaussianModel, threshold, colou
         self._features_rest[mask, coeffs_num:] = 0
 
 
-def _cull_sh_bands(self: VariableSHGaussianModel, cameras: List[Camera], threshold=0, std_threshold=0.):
+def _cull_sh_bands(self: VariableSHGaussianModel, cameras: CameraDataset, threshold=0, std_threshold=0.):
     camera_positions = torch.stack([cam.camera_center for cam in cameras], dim=0)
     camera_viewmatrices = torch.stack([cam.world_view_transform for cam in cameras], dim=0)
     camera_projmatrices = torch.stack([cam.full_proj_transform for cam in cameras], dim=0)
@@ -77,7 +77,7 @@ def _cull_sh_bands(self: VariableSHGaussianModel, cameras: List[Camera], thresho
     _low_distance_colour_culling(self, threshold, colour_distances)
 
 
-def cull_sh_bands(self: VariableSHGaussianModel, cameras: List[Camera], threshold=0, std_threshold=0.):
+def cull_sh_bands(self: VariableSHGaussianModel, cameras: CameraDataset, threshold=0, std_threshold=0.):
     with torch.no_grad():
         _cull_sh_bands(self, cameras, threshold, std_threshold)
 

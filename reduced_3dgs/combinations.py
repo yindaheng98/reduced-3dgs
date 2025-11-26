@@ -13,7 +13,7 @@ from .importance import ImportancePruningDensifierWrapper
 
 def FullPruningDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs) -> AbstractDensifier:
     return PruningDensifierWrapper(
         partial(ImportancePruningDensifierWrapper, base_densifier_constructor),
@@ -24,7 +24,7 @@ def FullPruningDensifierWrapper(
 
 def FullPruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs):
     return DensificationTrainer.from_densifier_constructor(
         partial(FullPruningDensifierWrapper, base_densifier_constructor),
@@ -36,7 +36,7 @@ def FullPruningTrainerWrapper(
 def BaseFullPruningTrainer(
         model: GaussianModel,
         scene_extent: float,
-        dataset: List[Camera],
+        dataset: CameraDataset,
         *args, **kwargs):
     return FullPruningTrainerWrapper(
         lambda model, *args, **kwargs: NoopDensifier(model),
@@ -60,7 +60,7 @@ FullPruningTrainer = DepthFullPruningTrainer
 
 def FullReducedDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs) -> AbstractDensifier:
     return ReducedDensificationDensifierWrapper(
         partial(ImportancePruningDensifierWrapper, base_densifier_constructor),
@@ -71,7 +71,7 @@ def FullReducedDensificationDensifierWrapper(
 
 def FullReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs):
     return DensificationTrainer.from_densifier_constructor(
         partial(FullReducedDensificationDensifierWrapper, base_densifier_constructor),
@@ -83,7 +83,7 @@ def FullReducedDensificationTrainerWrapper(
 def BaseFullReducedDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
-        dataset: List[Camera],
+        dataset: CameraDataset,
         *args, **kwargs):
     return FullReducedDensificationTrainerWrapper(
         lambda model, *args, **kwargs: NoopDensifier(model),
@@ -108,7 +108,7 @@ FullReducedDensificationTrainer = DepthFullReducedDensificationTrainer
 def OpacityResetFullReducedDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
-        dataset: List[Camera],
+        dataset: CameraDataset,
         *args, **kwargs):
     return OpacityResetTrainerWrapper(
         FullReducedDensificationTrainer,

@@ -20,7 +20,7 @@ PruningTrainer = DepthPruningTrainer
 
 def ReducedDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs) -> AbstractDensifier:
     return PruningDensifierWrapper(
         partial(SplitCloneDensifierWrapper, base_densifier_constructor),
@@ -31,7 +31,7 @@ def ReducedDensificationDensifierWrapper(
 
 def ReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs):
     return DensificationTrainer.from_densifier_constructor(
         partial(ReducedDensificationDensifierWrapper, base_densifier_constructor),
@@ -43,7 +43,7 @@ def ReducedDensificationTrainerWrapper(
 def BaseReducedDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
-        dataset: List[Camera],
+        dataset: CameraDataset,
         *args, **kwargs):
     return ReducedDensificationTrainerWrapper(
         lambda model, *args, **kwargs: NoopDensifier(model),

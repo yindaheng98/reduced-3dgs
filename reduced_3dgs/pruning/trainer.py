@@ -7,7 +7,7 @@ from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_interse
 from reduced_3dgs.simple_knn._C import distIndex2
 
 
-def calculate_redundancy_metric(gaussians: GaussianModel, cameras: List[Camera], pixel_scale=1.0, num_neighbours=30):
+def calculate_redundancy_metric(gaussians: GaussianModel, cameras: CameraDataset, pixel_scale=1.0, num_neighbours=30):
     # Get minimum projected pixel size
     cube_size = find_minimum_projected_pixel_size(
         torch.stack([camera.full_proj_transform for camera in cameras], dim=0),
@@ -69,7 +69,7 @@ def mercy_points(self: GaussianModel, _splatted_num_accum: torch.Tensor, lambda_
 
 def mercy_gaussians(
     model: GaussianModel,
-    dataset: List[Camera],
+    dataset: CameraDataset,
     box_size=1.,
     lambda_mercy=1.,
     mercy_minimum=3,
@@ -84,7 +84,7 @@ class BasePruner(OpacityPruner):
     def __init__(
             self, base_densifier: AbstractDensifier,
             scene_extent,
-            dataset: List[Camera],
+            dataset: CameraDataset,
             *args,
             box_size=1.,
             lambda_mercy=1.,
@@ -108,7 +108,7 @@ def PruningDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
-        dataset: List[Camera],
+        dataset: CameraDataset,
         *args,
         box_size=1.,
         lambda_mercy=1.,
@@ -142,7 +142,7 @@ def PruningDensifierWrapper(
 
 def PruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: List[Camera],
+        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
         *args, **kwargs):
     return DensificationTrainer.from_densifier_constructor(
         partial(PruningDensifierWrapper, base_densifier_constructor),
@@ -154,7 +154,7 @@ def PruningTrainerWrapper(
 def BasePruningTrainer(
         model: GaussianModel,
         scene_extent: float,
-        dataset: List[Camera],
+        dataset: CameraDataset,
         *args, **kwargs):
     return PruningTrainerWrapper(
         lambda model, *args, **kwargs: NoopDensifier(model),
