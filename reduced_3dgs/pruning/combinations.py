@@ -8,6 +8,16 @@ from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTra
 from .trainer import PruningDensifierWrapper, BasePruningTrainer
 
 
+def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+    return DepthTrainerWrapper(
+        BasePruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs)
+
+
+PruningTrainer = DepthPruningTrainer
+
+
 def ReducedDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel, scene_extent: float, dataset: List[Camera],
@@ -42,16 +52,6 @@ def BaseReducedDensificationTrainer(
     )
 
 
-# Depth trainer
-
-
-def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(
-        BasePruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
-
-
 def DepthReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
     return DepthTrainerWrapper(
         BaseReducedDensificationTrainer,
@@ -59,5 +59,4 @@ def DepthReducedDensificationTrainer(model: GaussianModel, scene_extent: float, 
         *args, **kwargs)
 
 
-PruningTrainer = DepthPruningTrainer
 ReducedDensificationTrainer = DepthReducedDensificationTrainer

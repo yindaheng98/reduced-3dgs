@@ -105,27 +105,16 @@ FullReducedDensificationTrainer = DepthFullReducedDensificationTrainer
 
 # Full Reduced Densification Trainer + Opacity Reset
 
-def BaseOpacityResetFullReducedDensificationTrainer(
+def OpacityResetFullReducedDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
         dataset: List[Camera],
         *args, **kwargs):
     return OpacityResetTrainerWrapper(
-        BaseFullReducedDensificationTrainer,
+        FullReducedDensificationTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
-
-
-def DepthOpacityResetFullReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(
-        BaseOpacityResetFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
-    )
-
-
-OpacityResetFullReducedDensificationTrainer = DepthOpacityResetFullReducedDensificationTrainer
 
 
 # SH Culling Wrapped Trainer

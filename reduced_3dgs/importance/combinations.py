@@ -7,6 +7,16 @@ from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTra
 from .trainer import ImportancePruningDensifierWrapper, BaseImportancePruningTrainer
 
 
+def DepthImportancePruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+    return DepthTrainerWrapper(
+        BaseImportancePruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs)
+
+
+ImportancePruningTrainer = DepthImportancePruningTrainer
+
+
 def ImportancePrunerInDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel, scene_extent: float, dataset: List[Camera],
@@ -41,16 +51,6 @@ def BaseImportancePrunerInDensificationTrainer(
     )
 
 
-# Depth trainer
-
-
-def DepthImportancePruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
-    return DepthTrainerWrapper(
-        BaseImportancePruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
-
-
 def DepthImportancePrunerInDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
     return DepthTrainerWrapper(
         BaseImportancePrunerInDensificationTrainer,
@@ -58,5 +58,4 @@ def DepthImportancePrunerInDensificationTrainer(model: GaussianModel, scene_exte
         *args, **kwargs)
 
 
-ImportancePruningTrainer = DepthImportancePruningTrainer
 ImportancePrunerInDensificationTrainer = DepthImportancePrunerInDensificationTrainer
