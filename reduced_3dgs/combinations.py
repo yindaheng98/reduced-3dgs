@@ -100,18 +100,32 @@ def DepthFullReducedDensificationTrainer(model: GaussianModel, scene_extent: flo
     )
 
 
-# Opacity Reset Wrapped Trainer (Opacity Reset + Pruning without Densification will reduce Gaussians too quickly)
+FullReducedDensificationTrainer = DepthFullReducedDensificationTrainer
 
-def OpacityResetFullReducedDensificationTrainer(
+
+# Full Reduced Densification Trainer + Opacity Reset
+
+def BaseOpacityResetFullReducedDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
-        dataset: CameraDataset,
+        dataset: List[Camera],
         *args, **kwargs):
     return OpacityResetTrainerWrapper(
-        lambda model, scene_extent, *args, **kwargs: DepthFullReducedDensificationTrainer(model, scene_extent, dataset, *args, **kwargs),
-        model, scene_extent,
+        BaseFullReducedDensificationTrainer,
+        model, scene_extent, dataset,
         *args, **kwargs
     )
+
+
+def DepthOpacityResetFullReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+    return DepthTrainerWrapper(
+        BaseOpacityResetFullReducedDensificationTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+OpacityResetFullReducedDensificationTrainer = DepthOpacityResetFullReducedDensificationTrainer
 
 
 # SH Culling Wrapped Trainer
@@ -123,6 +137,30 @@ def SHCullingOpacityResetDensificationTrainer(
         *args, **kwargs):
     return SHCullingTrainerWrapper(
         lambda model, scene_extent, dataset, *args, **kwargs: OpacityResetDensificationTrainer(model, scene_extent, *args, **kwargs),
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+def SHCullingFullPruningTrainer(
+    model: VariableSHGaussianModel,
+        scene_extent: float,
+        dataset: CameraDataset,
+        *args, **kwargs):
+    return SHCullingTrainerWrapper(
+        FullPruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+def SHCullingFullReducedDensificationTrainer(
+    model: VariableSHGaussianModel,
+        scene_extent: float,
+        dataset: CameraDataset,
+        *args, **kwargs):
+    return SHCullingTrainerWrapper(
+        FullReducedDensificationTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
@@ -159,6 +197,30 @@ def CameraSHCullingTrainer(
     )
 
 
+def CameraFullPruningTrainer(
+        model: CameraTrainableVariableSHGaussianModel,
+        scene_extent: float,
+        dataset: TrainableCameraDataset,
+        *args, **kwargs):
+    return CameraTrainerWrapper(
+        FullPruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+def CameraFullReducedDensificationTrainer(
+        model: CameraTrainableVariableSHGaussianModel,
+        scene_extent: float,
+        dataset: TrainableCameraDataset,
+        *args, **kwargs):
+    return CameraTrainerWrapper(
+        FullReducedDensificationTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
 def CameraOpacityResetFullReducedDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
         scene_extent: float,
@@ -180,6 +242,30 @@ def CameraSHCullingOpacityResetDensificationTrainer(
         *args, **kwargs):
     return CameraTrainerWrapper(
         SHCullingOpacityResetDensificationTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+def CameraSHCullingFullPruningTrainer(
+        model: CameraTrainableVariableSHGaussianModel,
+        scene_extent: float,
+        dataset: TrainableCameraDataset,
+        *args, **kwargs):
+    return CameraTrainerWrapper(
+        SHCullingFullPruningTrainer,
+        model, scene_extent, dataset,
+        *args, **kwargs
+    )
+
+
+def CameraSHCullingFullReducedDensificationTrainer(
+        model: CameraTrainableVariableSHGaussianModel,
+        scene_extent: float,
+        dataset: TrainableCameraDataset,
+        *args, **kwargs):
+    return CameraTrainerWrapper(
+        SHCullingFullReducedDensificationTrainer,
         model, scene_extent, dataset,
         *args, **kwargs
     )
