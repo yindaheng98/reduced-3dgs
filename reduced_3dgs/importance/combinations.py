@@ -1,7 +1,7 @@
 from functools import partial
-from typing import Callable, List
-from gaussian_splatting import Camera, GaussianModel
-from gaussian_splatting.dataset import TrainableCameraDataset
+from typing import Callable
+from gaussian_splatting import GaussianModel
+from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import AbstractDensifier, DepthTrainerWrapper
 from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTrainer, DensificationDensifierWrapper
 from .trainer import ImportancePruningDensifierWrapper, BaseImportancePruningTrainer

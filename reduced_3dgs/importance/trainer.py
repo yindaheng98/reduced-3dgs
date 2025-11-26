@@ -1,6 +1,6 @@
 from functools import partial
 import math
-from typing import Callable, List
+from typing import Callable
 import torch
 
 from gaussian_splatting import Camera, GaussianModel

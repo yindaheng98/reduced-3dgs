@@ -1,7 +1,8 @@
 from functools import partial
-from typing import Callable, List
+from typing import Callable
 import torch
-from gaussian_splatting import GaussianModel, Camera
+from gaussian_splatting import GaussianModel
+from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractDensifier, OpacityPruner, DensificationTrainer, NoopDensifier
 from reduced_3dgs.diff_gaussian_rasterization._C import sphere_ellipsoid_intersection, allocate_minimum_redundancy_value, find_minimum_projected_pixel_size
 from reduced_3dgs.simple_knn._C import distIndex2

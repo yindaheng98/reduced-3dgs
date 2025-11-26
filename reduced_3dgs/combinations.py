@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, List
+from typing import Callable
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetTrainerWrapper, CameraTrainerWrapper, DepthTrainerWrapper

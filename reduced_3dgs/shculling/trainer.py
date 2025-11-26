@@ -1,7 +1,5 @@
-from typing import List
 import torch
 
-from gaussian_splatting import Camera
 from gaussian_splatting.trainer import AbstractTrainer, TrainerWrapper, BaseTrainer, Trainer
 from gaussian_splatting.dataset import CameraDataset
 from reduced_3dgs.diff_gaussian_rasterization._C import calculate_colours_variance
