@@ -4,13 +4,14 @@ from gaussian_splatting.dataset.colmap import colmap_init
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
 from reduced_3dgs.quantization import VectorQuantizeTrainerWrapper
-from reduced_3dgs.shculling import VariableSHGaussianModel, SHCullingTrainer
-from reduced_3dgs.pruning import PruningTrainer
-from reduced_3dgs.combinations import SHCullingPruningTrainer
-from reduced_3dgs.combinations import PrunerInDensifyTrainer, SHCullingDensificationTrainer, SHCullingPrunerInDensifyTrainer
-from reduced_3dgs.combinations import CameraTrainableVariableSHGaussianModel, CameraSHCullingTrainer, CameraPruningTrainer
-from reduced_3dgs.combinations import CameraSHCullingPruningTrainer
-from reduced_3dgs.combinations import CameraPrunerInDensifyTrainer, CameraSHCullingDensifyTrainer, CameraSHCullingPrunerInDensifyTrainer
+from reduced_3dgs.shculling import VariableSHGaussianModel
+from reduced_3dgs import CameraTrainableVariableSHGaussianModel
+from reduced_3dgs import SHCullingOpacityResetDensificationTrainer
+from reduced_3dgs import FullPruningTrainer, SHCullingFullPruningTrainer
+from reduced_3dgs import OpacityResetFullReducedDensificationTrainer, SHCullingOpacityResetFullReducedDensificationTrainer
+from reduced_3dgs import CameraSHCullingOpacityResetDensificationTrainer
+from reduced_3dgs import CameraFullPruningTrainer, CameraSHCullingFullPruningTrainer
+from reduced_3dgs import CameraOpacityResetFullReducedDensificationTrainer, CameraSHCullingOpacityResetFullReducedDensificationTrainer
 
 
 def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera: bool = False, load_ply: str = None) -> GaussianModel:
@@ -24,18 +25,16 @@ def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera
 
 
 modes = {
-    "shculling": SHCullingTrainer,
-    "pruning": PruningTrainer,
-    "densify-pruning": PrunerInDensifyTrainer,
-    "densify-shculling": SHCullingDensificationTrainer,
-    "prune-shculling": SHCullingPruningTrainer,
-    "densify-prune-shculling": SHCullingPrunerInDensifyTrainer,
-    "camera-shculling": CameraSHCullingTrainer,
-    "camera-pruning": CameraPruningTrainer,
-    "camera-densify-pruning": CameraPrunerInDensifyTrainer,
-    "camera-densify-shculling": CameraSHCullingDensifyTrainer,
-    "camera-prune-shculling": CameraSHCullingPruningTrainer,
-    "camera-densify-prune-shculling": CameraSHCullingPrunerInDensifyTrainer,
+    "densify-shculling": SHCullingOpacityResetDensificationTrainer,
+    "pruning": FullPruningTrainer,
+    "pruning-shculling": SHCullingFullPruningTrainer,
+    "densify-pruning": OpacityResetFullReducedDensificationTrainer,
+    "densify-pruning-shculling": SHCullingOpacityResetFullReducedDensificationTrainer,
+    "camera-densify-shculling": CameraSHCullingOpacityResetDensificationTrainer,
+    "camera-pruning": CameraFullPruningTrainer,
+    "camera-pruning-shculling": CameraSHCullingFullPruningTrainer,
+    "camera-densify-pruning": CameraOpacityResetFullReducedDensificationTrainer,
+    "camera-densify-pruning-shculling": CameraSHCullingOpacityResetFullReducedDensificationTrainer,
 }
 
 
