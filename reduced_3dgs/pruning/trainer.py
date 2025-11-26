@@ -124,7 +124,7 @@ def PruningDensifierWrapper(
         # copy from OpacityPruner
         **kwargs):
     return BasePruner(
-        base_densifier_constructor(model, scene_extent, *args, **kwargs),
+        base_densifier_constructor(model, scene_extent, dataset, *args, **kwargs),
         scene_extent,
         dataset,
         box_size=box_size,

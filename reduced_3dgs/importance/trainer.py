@@ -251,7 +251,6 @@ def ImportancePruningDensifierWrapper(
         **kwargs):
     return ImportancePruner(
         base_densifier_constructor(model, scene_extent, dataset, *args, **kwargs),
-        scene_extent,
         dataset,
         importance_prune_from_iter=importance_prune_from_iter,
         importance_prune_until_iter=importance_prune_until_iter,
