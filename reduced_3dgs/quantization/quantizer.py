@@ -76,12 +76,12 @@ class VectorQuantizer(AbstractQuantizer):
             init=kmeans_init if init_codebook is None else init_codebook.cpu().numpy(),
             random_state=0, n_init="auto", verbose=1,
         )
-        ids = torch.tensor(kmeans.fit_predict(values.cpu().numpy()), dtype=torch.int64, device=values.device)  # dtype should match one_nearst
+        ids = torch.tensor(kmeans.fit_predict(values.cpu().numpy()), dtype=torch.int32, device=values.device)  # dtype should match one_nearst
         centers = torch.tensor(kmeans.cluster_centers_, dtype=values.dtype, device=values.device)
         return centers, ids
 
     def one_nearst(self, points: torch.Tensor, codebook: torch.Tensor, batch=2**16):
-        ids = torch.zeros(points.shape[0], dtype=torch.int64, device=points.device)  # dtype should match generate_codebook
+        ids = torch.zeros(points.shape[0], dtype=torch.int32, device=points.device)  # dtype should match generate_codebook
         for i in range(math.ceil(points.shape[0]/batch)):
             ids[i*batch:i*batch+batch] = torch.argmin(torch.cdist(points[i*batch:i*batch+batch, ...], codebook), dim=1)
         return ids
