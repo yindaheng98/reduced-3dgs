@@ -14,7 +14,7 @@ class ExcludeZeroSHQuantizer(VectorQuantizer):
     def generate_codebook_exclude_zero(self, values: torch.Tensor, num_clusters=256, init_codebook=None):
         zeros_mask = self.zeros_mask(values)
         if zeros_mask.all():
-            return torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), torch.zeros(values.shape[0], dtype=torch.long, device=values.device)
+            return torch.zeros(1, values.shape[1], dtype=values.dtype, device=values.device), torch.zeros(values.shape[0], dtype=torch.int32, device=values.device)  # dtype should match generate_codebook
         if init_codebook is not None:
             if init_codebook.abs().max() < self.treat_as_zero:
                 init_codebook = None
