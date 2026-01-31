@@ -39,7 +39,7 @@ def compute_uint_dtype(n):
     bytes = bits // 8
     if bits % 8:
         bytes += 1
-    return f'u{bytes}'
+    return f'u{max(bytes, 1)}'
 
 
 class VectorQuantizer(AbstractQuantizer):
@@ -71,6 +71,8 @@ class VectorQuantizer(AbstractQuantizer):
         self._codebook_dict = {}
 
     def generate_codebook(self, values: torch.Tensor, num_clusters, init_codebook=None):
+        if num_clusters <= 0:
+            return values.mean(0, keepdim=True), torch.zeros(values.shape[0], dtype=torch.int32, device=values.device)
         kmeans = KMeans(
             n_clusters=num_clusters, tol=self.tol, max_iter=self.max_iter,
             init=kmeans_init if init_codebook is None else init_codebook.cpu().numpy(),
@@ -81,6 +83,8 @@ class VectorQuantizer(AbstractQuantizer):
         return centers, ids
 
     def one_nearst(self, points: torch.Tensor, codebook: torch.Tensor, batch=2**16):
+        if codebook.shape[0] <= 1:
+            return torch.zeros(points.shape[0], dtype=torch.int32, device=points.device)
         ids = torch.zeros(points.shape[0], dtype=torch.int32, device=points.device)  # dtype should match generate_codebook
         for i in range(math.ceil(points.shape[0]/batch)):
             ids[i*batch:i*batch+batch] = torch.argmin(torch.cdist(points[i*batch:i*batch+batch, ...], codebook), dim=1)
