@@ -71,7 +71,7 @@ class VectorQuantizer(AbstractQuantizer):
         self._codebook_dict = {}
 
     def generate_codebook(self, values: torch.Tensor, num_clusters, init_codebook=None):
-        if num_clusters <= 0:
+        if num_clusters <= 1:
             return values.mean(0, keepdim=True), torch.zeros(values.shape[0], dtype=torch.int32, device=values.device)
         kmeans = KMeans(
             n_clusters=num_clusters, tol=self.tol, max_iter=self.max_iter,
