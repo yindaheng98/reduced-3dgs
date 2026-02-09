@@ -8,7 +8,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.trainer import AbstractTrainer
-from gaussian_splatting.prepare import prepare_dataset
+from gaussian_splatting.prepare import prepare_dataset, backends
 from gaussian_splatting.train import save_cfg_args
 from reduced_3dgs.quantization import AbstractQuantizer
 from reduced_3dgs.prepare import modes, prepare_gaussians, prepare_trainer
@@ -17,10 +17,10 @@ from reduced_3dgs.prepare import modes, prepare_gaussians, prepare_trainer
 def prepare_training(
         sh_degree: int, source: str, device: str, mode: str,
         trainable_camera: bool = False, load_ply: str = None, load_camera: str = None,
-        load_mask=True, load_depth=True,
+        load_mask=True, load_depth=True, backend: str = "inria",
         with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}):
     dataset = prepare_dataset(source=source, device=device, trainable_camera=trainable_camera, load_camera=load_camera, load_mask=load_mask, load_depth=load_depth)
-    gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=trainable_camera, load_ply=load_ply)
+    gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=trainable_camera, load_ply=load_ply, backend=backend)
     trainer, quantizer = prepare_trainer(gaussians=gaussians, dataset=dataset, mode=mode, with_scale_reg=with_scale_reg, quantize=quantize, load_quantized=load_quantized, configs=configs)
     return dataset, gaussians, trainer, quantizer
 
@@ -79,6 +79,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument("--sh_degree", default=3, type=int)
+    parser.add_argument("--backend", choices=backends, default="inria")
     parser.add_argument("-s", "--source", required=True, type=str)
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", default=30000, type=int)
@@ -103,7 +104,7 @@ if __name__ == "__main__":
         sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode, trainable_camera="camera" in args.mode,
         load_ply=args.load_ply, load_camera=args.load_camera,
         load_mask=not args.no_image_mask, load_depth=not args.no_depth_data,
-        with_scale_reg=args.with_scale_reg,
+        backend=args.backend, with_scale_reg=args.with_scale_reg,
         quantize=args.quantize, load_quantized=args.load_quantized, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
     torch.cuda.empty_cache()

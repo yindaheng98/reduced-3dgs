@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
-from gaussian_splatting import GaussianModel
+from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
+from gaussian_splatting.models.gsplat import GsplatGaussianModel, CameraTrainableGsplatGaussianModel
+from gaussian_splatting.models.gsplat_2dgs import Gsplat2DGSGaussianModel, CameraTrainableGsplat2DGSGaussianModel
 
 
 class VariableSHGaussianModel(GaussianModel):
@@ -76,3 +78,24 @@ class VariableSHGaussianModel(GaussianModel):
         )
         with torch.no_grad():
             self._degrees = self._degrees[~removed_mask]
+
+
+class VariableSHGsplatGaussianModel(VariableSHGaussianModel, GsplatGaussianModel):
+    pass
+
+
+class VariableSHGsplat2DGSGaussianModel(VariableSHGaussianModel, Gsplat2DGSGaussianModel):
+    pass
+
+
+class CameraTrainableVariableSHGaussianModel(VariableSHGaussianModel):
+    def forward(self, camera: Camera):
+        return CameraTrainableGaussianModel.forward(self, camera)
+
+
+class CameraTrainableVariableSHGsplatGaussianModel(VariableSHGsplatGaussianModel, CameraTrainableGsplatGaussianModel):
+    pass
+
+
+class CameraTrainableVariableSHGsplat2DGSGaussianModel(VariableSHGsplat2DGSGaussianModel, CameraTrainableGsplat2DGSGaussianModel):
+    pass

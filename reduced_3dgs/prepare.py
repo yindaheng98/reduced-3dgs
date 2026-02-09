@@ -1,11 +1,10 @@
+from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.dataset.colmap import colmap_init
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.trainer.extensions import ScaleRegularizeTrainerWrapper
 from reduced_3dgs.quantization import VectorQuantizeTrainerWrapper
-from reduced_3dgs.shculling import VariableSHGaussianModel
-from reduced_3dgs import CameraTrainableVariableSHGaussianModel
 from reduced_3dgs import SHCullingOpacityResetDensificationTrainer
 from reduced_3dgs import FullPruningTrainer, SHCullingFullPruningTrainer
 from reduced_3dgs import OpacityResetFullReducedDensificationTrainer, SHCullingOpacityResetFullReducedDensificationTrainer
@@ -13,14 +12,27 @@ from reduced_3dgs import CameraSHCullingOpacityResetDensificationTrainer
 from reduced_3dgs import CameraFullPruningTrainer, CameraSHCullingFullPruningTrainer
 from reduced_3dgs import CameraOpacityResetFullReducedDensificationTrainer, CameraSHCullingOpacityResetFullReducedDensificationTrainer
 
+backends = ["inria", "gsplat", "gsplat-2dgs"]
 
-def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera: bool = False, load_ply: str = None) -> GaussianModel:
-    if trainable_camera:
-        gaussians = CameraTrainableVariableSHGaussianModel(sh_degree).to(device)
-        gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
-    else:
-        gaussians = VariableSHGaussianModel(sh_degree).to(device)
-        gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
+
+def get_gaussian_model_class(backend: str, trainable_camera: bool = False) -> Callable[[int], GaussianModel]:
+    match backend:
+        case "inria":
+            from reduced_3dgs.shculling import VariableSHGaussianModel, CameraTrainableVariableSHGaussianModel
+            return CameraTrainableVariableSHGaussianModel if trainable_camera else VariableSHGaussianModel
+        case "gsplat":
+            from reduced_3dgs.shculling import VariableSHGsplatGaussianModel, CameraTrainableVariableSHGsplatGaussianModel
+            return CameraTrainableVariableSHGsplatGaussianModel if trainable_camera else VariableSHGsplatGaussianModel
+        case "gsplat-2dgs":
+            from reduced_3dgs.shculling import VariableSHGsplat2DGSGaussianModel, CameraTrainableVariableSHGsplat2DGSGaussianModel
+            return CameraTrainableVariableSHGsplat2DGSGaussianModel if trainable_camera else VariableSHGsplat2DGSGaussianModel
+        case _:
+            raise ValueError(f"Unknown backend: {backend}")
+
+
+def prepare_gaussians(sh_degree: int, source: str, device: str, trainable_camera: bool = False, load_ply: str = None, backend: str = "inria") -> GaussianModel:
+    gaussians = get_gaussian_model_class(backend, trainable_camera=trainable_camera)(sh_degree).to(device)
+    gaussians.load_ply(load_ply) if load_ply else colmap_init(gaussians, source)
     return gaussians
 
 

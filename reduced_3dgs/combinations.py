@@ -1,10 +1,10 @@
 from functools import partial
 from typing import Callable
-from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel, Camera
+from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetTrainerWrapper, CameraTrainerWrapper, DepthTrainerWrapper
 from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier, DensificationTrainer
-from .shculling import VariableSHGaussianModel, SHCullingTrainerWrapper, SHCullingTrainer
+from .shculling import VariableSHGaussianModel, CameraTrainableVariableSHGaussianModel, SHCullingTrainerWrapper, SHCullingTrainer
 from .pruning import PruningDensifierWrapper, ReducedDensificationDensifierWrapper
 from .importance import ImportancePruningDensifierWrapper
 
@@ -168,11 +168,6 @@ def SHCullingOpacityResetFullReducedDensificationTrainer(
 
 
 # Camera Wrapped Trainer
-
-class CameraTrainableVariableSHGaussianModel(VariableSHGaussianModel):
-    def forward(self, camera: Camera):
-        return CameraTrainableGaussianModel.forward(self, camera)
-
 
 def CameraSHCullingTrainer(
         model: CameraTrainableVariableSHGaussianModel,
