@@ -7,11 +7,11 @@ from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTra
 from .trainer import ImportancePruningDensifierWrapper, BaseImportancePruningTrainer
 
 
-def DepthImportancePruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthImportancePruningTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseImportancePruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
+        model, dataset,
+        **configs)
 
 
 ImportancePruningTrainer = DepthImportancePruningTrainer
@@ -19,43 +19,42 @@ ImportancePruningTrainer = DepthImportancePruningTrainer
 
 def ImportancePrunerInDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs) -> AbstractDensifier:
+        model: GaussianModel, dataset: CameraDataset,
+        **configs) -> AbstractDensifier:
     return ImportancePruningDensifierWrapper(
         partial(DensificationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def ImportancePrunerInDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(ImportancePrunerInDensificationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def BaseImportancePrunerInDensificationTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return ImportancePrunerInDensificationTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
 
 
-def DepthImportancePrunerInDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthImportancePrunerInDensificationTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseImportancePrunerInDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
+        model, dataset,
+        **configs)
 
 
 ImportancePrunerInDensificationTrainer = DepthImportancePrunerInDensificationTrainer

@@ -105,14 +105,13 @@ class SHCuller(TrainerWrapper):
 def SHCullingTrainerWrapper(
     base_trainer_constructor,
         model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
         std_threshold: float = 0.04,
         cull_at_steps=[15000],
-        *args, **kwargs):
+        **configs):
     return SHCuller(
-        base_trainer_constructor(model, scene_extent, dataset, *args, **kwargs),
+        base_trainer_constructor(model, dataset, **configs),
         dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,
@@ -122,35 +121,33 @@ def SHCullingTrainerWrapper(
 
 def BaseSHCullingTrainer(
     model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
         std_threshold: float = 0.04,
         cull_at_steps=[15000],
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: BaseTrainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
+        lambda model, dataset, **configs: BaseTrainer(model, dataset, **configs),
+        model, dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,
         cull_at_steps=cull_at_steps,
-        *args, **kwargs,
+        **configs,
     )
 
 
 def SHCullingTrainer(
     model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
         cdist_threshold: float = 6,
         std_threshold: float = 0.04,
         cull_at_steps=[15000],
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: Trainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
+        lambda model, dataset, **configs: Trainer(model, dataset, **configs),
+        model, dataset,
         cdist_threshold=cdist_threshold,
         std_threshold=std_threshold,
         cull_at_steps=cull_at_steps,
-        *args, **kwargs,
+        **configs,
     )

@@ -8,11 +8,11 @@ from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTra
 from .trainer import PruningDensifierWrapper, BasePruningTrainer
 
 
-def DepthPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthPruningTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BasePruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
+        model, dataset,
+        **configs)
 
 
 PruningTrainer = DepthPruningTrainer
@@ -20,43 +20,42 @@ PruningTrainer = DepthPruningTrainer
 
 def ReducedDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs) -> AbstractDensifier:
+        model: GaussianModel, dataset: CameraDataset,
+        **configs) -> AbstractDensifier:
     return PruningDensifierWrapper(
         partial(SplitCloneDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def ReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(ReducedDensificationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def BaseReducedDensificationTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return ReducedDensificationTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
 
 
-def DepthReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthReducedDensificationTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs)
+        model, dataset,
+        **configs)
 
 
 ReducedDensificationTrainer = DepthReducedDensificationTrainer

@@ -13,43 +13,42 @@ from .importance import ImportancePruningDensifierWrapper
 
 def FullPruningDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs) -> AbstractDensifier:
+        model: GaussianModel, dataset: CameraDataset,
+        **configs) -> AbstractDensifier:
     return PruningDensifierWrapper(
         partial(ImportancePruningDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def FullPruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(FullPruningDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def BaseFullPruningTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return FullPruningTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
 
 
-def DepthFullPruningTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthFullPruningTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseFullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -60,43 +59,42 @@ FullPruningTrainer = DepthFullPruningTrainer
 
 def FullReducedDensificationDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs) -> AbstractDensifier:
+        model: GaussianModel, dataset: CameraDataset,
+        **configs) -> AbstractDensifier:
     return ReducedDensificationDensifierWrapper(
         partial(ImportancePruningDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def FullReducedDensificationTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(FullReducedDensificationDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def BaseFullReducedDensificationTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return FullReducedDensificationTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )
 
 
-def DepthFullReducedDensificationTrainer(model: GaussianModel, scene_extent: float, dataset: TrainableCameraDataset, *args, **kwargs):
+def DepthFullReducedDensificationTrainer(model: GaussianModel, dataset: TrainableCameraDataset, **configs):
     return DepthTrainerWrapper(
         BaseFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -107,13 +105,12 @@ FullReducedDensificationTrainer = DepthFullReducedDensificationTrainer
 
 def OpacityResetFullReducedDensificationTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return OpacityResetTrainerWrapper(
         FullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -121,49 +118,45 @@ def OpacityResetFullReducedDensificationTrainer(
 
 def SHCullingOpacityResetDensificationTrainer(
     model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
-        lambda model, scene_extent, dataset, *args, **kwargs: OpacityResetDensificationTrainer(model, scene_extent, *args, **kwargs),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: OpacityResetDensificationTrainer(model, dataset, **configs),
+        model, dataset,
+        **configs
     )
 
 
 def SHCullingFullPruningTrainer(
     model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
         FullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def SHCullingFullReducedDensificationTrainer(
     model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
         FullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def SHCullingOpacityResetFullReducedDensificationTrainer(
     model: VariableSHGaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return SHCullingTrainerWrapper(
         OpacityResetFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -171,49 +164,45 @@ def SHCullingOpacityResetFullReducedDensificationTrainer(
 
 def CameraSHCullingTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraFullPruningTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         FullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraFullReducedDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         FullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraOpacityResetFullReducedDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         OpacityResetFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
@@ -221,47 +210,43 @@ def CameraOpacityResetFullReducedDensificationTrainer(
 
 def CameraSHCullingOpacityResetDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingOpacityResetDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraSHCullingFullPruningTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingFullPruningTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraSHCullingFullReducedDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def CameraSHCullingOpacityResetFullReducedDensificationTrainer(
         model: CameraTrainableVariableSHGaussianModel,
-        scene_extent: float,
         dataset: TrainableCameraDataset,
-        *args, **kwargs):
+        **configs):
     return CameraTrainerWrapper(
         SHCullingOpacityResetFullReducedDensificationTrainer,
-        model, scene_extent, dataset,
-        *args, **kwargs
+        model, dataset,
+        **configs
     )

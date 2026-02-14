@@ -23,6 +23,20 @@
             ]
         },
         {
+            "name": "viewer",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "gaussian_splatting.viewer",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-d",
+                "output/truck-reduced",
+                "-i",
+                "30000",
+            ]
+        },
+        {
             "name": "train-camera",
             "type": "debugpy",
             "request": "launch",

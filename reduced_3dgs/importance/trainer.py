@@ -232,9 +232,7 @@ class ImportancePruner(DensifierWrapper):
 def ImportancePruningDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args,
         importance_prune_from_iter=15000,
         importance_prune_until_iter=20000,
         importance_prune_interval: int = 1000,
@@ -248,9 +246,9 @@ def ImportancePruningDensifierWrapper(
         importance_prune_thr_T_alpha=1.0,
         importance_prune_thr_T_alpha_avg=0.001,
         importance_v_pow=0.1,
-        **kwargs):
+        **configs):
     return ImportancePruner(
-        base_densifier_constructor(model, scene_extent, dataset, *args, **kwargs),
+        base_densifier_constructor(model, dataset, **configs),
         dataset,
         importance_prune_from_iter=importance_prune_from_iter,
         importance_prune_until_iter=importance_prune_until_iter,
@@ -270,22 +268,21 @@ def ImportancePruningDensifierWrapper(
 
 def ImportancePruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(ImportancePruningDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset
-        * args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def BaseImportancePruningTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return ImportancePruningTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )

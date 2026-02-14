@@ -84,15 +84,13 @@ def mercy_gaussians(
 class BasePruner(OpacityPruner):
     def __init__(
             self, base_densifier: AbstractDensifier,
-            scene_extent,
             dataset: CameraDataset,
-            *args,
             box_size=1.,
             lambda_mercy=1.,
             mercy_minimum=3,
             mercy_type='redundancy_opacity',
-            **kwargs):
-        super().__init__(base_densifier, scene_extent, *args, **kwargs)
+            **configs):
+        super().__init__(base_densifier, dataset, **configs)
         self.dataset = dataset
         self.box_size = box_size
         self.lambda_mercy = lambda_mercy
@@ -108,9 +106,7 @@ class BasePruner(OpacityPruner):
 def PruningDensifierWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args,
         box_size=1.,
         lambda_mercy=1.,
         mercy_minimum=3,
@@ -123,10 +119,9 @@ def PruningDensifierWrapper(
         prune_percent_too_big=1,
         prune_opacity_threshold=0.005,
         # copy from OpacityPruner
-        **kwargs):
+        **configs):
     return BasePruner(
-        base_densifier_constructor(model, scene_extent, dataset, *args, **kwargs),
-        scene_extent,
+        base_densifier_constructor(model, dataset, **configs),
         dataset,
         box_size=box_size,
         lambda_mercy=lambda_mercy,
@@ -143,22 +138,21 @@ def PruningDensifierWrapper(
 
 def PruningTrainerWrapper(
         base_densifier_constructor: Callable[..., AbstractDensifier],
-        model: GaussianModel, scene_extent: float, dataset: CameraDataset,
-        *args, **kwargs):
+        model: GaussianModel, dataset: CameraDataset,
+        **configs):
     return DensificationTrainer.from_densifier_constructor(
         partial(PruningDensifierWrapper, base_densifier_constructor),
-        model, scene_extent, dataset
-        * args, **kwargs
+        model, dataset,
+        **configs
     )
 
 
 def BasePruningTrainer(
         model: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
-        *args, **kwargs):
+        **configs):
     return PruningTrainerWrapper(
-        lambda model, *args, **kwargs: NoopDensifier(model),
-        model, scene_extent, dataset,
-        *args, **kwargs
+        lambda model, dataset, **configs: NoopDensifier(model),
+        model, dataset,
+        **configs
     )

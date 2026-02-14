@@ -52,7 +52,6 @@ modes = {
 
 def prepare_quantizer(
         gaussians: GaussianModel,
-        scene_extent: float,
         dataset: CameraDataset,
         base_constructor,
         load_quantized: str = None,
@@ -72,7 +71,6 @@ def prepare_quantizer(
     trainer = VectorQuantizeTrainerWrapper(
         base_constructor(
             gaussians,
-            scene_extent=scene_extent,
             dataset=dataset,
             **configs
         ),
@@ -97,11 +95,10 @@ def prepare_quantizer(
 def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str, with_scale_reg=False, quantize: bool = False, load_quantized: str = None, configs={}) -> AbstractTrainer:
     constructor = modes[mode]
     if with_scale_reg:
-        constructor = lambda *args, **kwargs: ScaleRegularizeTrainerWrapper(modes[mode], *args, **kwargs)
+        constructor = lambda model, dataset, **configs: ScaleRegularizeTrainerWrapper(modes[mode], model, dataset, **configs)
     if quantize:
         trainer, quantizer = prepare_quantizer(
             gaussians,
-            scene_extent=dataset.scene_extent(),
             dataset=dataset,
             base_constructor=modes[mode],
             load_quantized=load_quantized,
@@ -110,7 +107,6 @@ def prepare_trainer(gaussians: GaussianModel, dataset: CameraDataset, mode: str,
     else:
         trainer = constructor(
             gaussians,
-            scene_extent=dataset.scene_extent(),
             dataset=dataset,
             **configs
         )
