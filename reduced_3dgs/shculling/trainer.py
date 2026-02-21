@@ -122,16 +122,10 @@ def SHCullingTrainerWrapper(
 def BaseSHCullingTrainer(
     model: VariableSHGaussianModel,
         dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
         **configs):
     return SHCullingTrainerWrapper(
-        lambda model, dataset, **configs: BaseTrainer(model, dataset, **configs),
+        BaseTrainer,
         model, dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
         **configs,
     )
 
@@ -139,15 +133,9 @@ def BaseSHCullingTrainer(
 def SHCullingTrainer(
     model: VariableSHGaussianModel,
         dataset: CameraDataset,
-        cdist_threshold: float = 6,
-        std_threshold: float = 0.04,
-        cull_at_steps=[15000],
         **configs):
     return SHCullingTrainerWrapper(
-        lambda model, dataset, **configs: Trainer(model, dataset, **configs),
+        Trainer,
         model, dataset,
-        cdist_threshold=cdist_threshold,
-        std_threshold=std_threshold,
-        cull_at_steps=cull_at_steps,
         **configs,
     )

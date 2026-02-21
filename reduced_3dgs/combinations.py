@@ -121,7 +121,7 @@ def SHCullingOpacityResetDensificationTrainer(
         dataset: CameraDataset,
         **configs):
     return SHCullingTrainerWrapper(
-        lambda model, dataset, **configs: OpacityResetDensificationTrainer(model, dataset, **configs),
+        OpacityResetDensificationTrainer,
         model, dataset,
         **configs
     )
