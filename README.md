@@ -1,5 +1,11 @@
 # Reduced-3DGS: Memory Footprint Reduction for 3D Gaussian Splatting (Python Package Version)
 
+[![PyPI version](https://img.shields.io/pypi/v/reduced-3dgs.svg?logo=pypi)](https://pypi.org/project/reduced-3dgs/)
+[![Downloads](https://api.pepy.tech/personalized-badge/reduced-3dgs?period=month&left_color=grey&right_color=brightgreen&left_text=monthly%20downloads)](https://pepy.tech/project/reduced-3dgs)
+[![Total downloads](https://api.pepy.tech/personalized-badge/reduced-3dgs?period=total&left_color=grey&right_color=brightgreen&left_text=total%20downloads)](https://pepy.tech/project/reduced-3dgs)
+[![CI](https://github.com/yindaheng98/reduced-3dgs/actions/workflows/build-release-linux.yml/badge.svg)](https://github.com/yindaheng98/reduced-3dgs/actions/workflows/ci.yml)
+[![CI](https://github.com/yindaheng98/reduced-3dgs/actions/workflows/build-release-win.yml/badge.svg)](https://github.com/yindaheng98/reduced-3dgs/actions/workflows/ci.yml)
+
 This repository contains the **refactored Python code for [Reduced-3DGS](https://github.com/graphdeco-inria/reduced-3dgs)**. It is forked from commit [13e7393af8ecd83d69197dec7e4c891b333a7c1c](https://github.com/graphdeco-inria/reduced-3dgs/tree/13e7393af8ecd83d69197dec7e4c891b333a7c1c). The original code has been **refactored to follow the standard Python package structure**, while **maintaining the same algorithms as the original version**.
 
 ## Features
