@@ -11,6 +11,12 @@ from reduced_3dgs import OpacityResetFullReducedDensificationTrainer, SHCullingO
 from reduced_3dgs import CameraSHCullingOpacityResetDensificationTrainer
 from reduced_3dgs import CameraFullPruningTrainer, CameraSHCullingFullPruningTrainer
 from reduced_3dgs import CameraOpacityResetFullReducedDensificationTrainer, CameraSHCullingOpacityResetFullReducedDensificationTrainer
+from reduced_3dgs import NormalSHCullingOpacityResetDensificationTrainer
+from reduced_3dgs import NormalFullPruningTrainer, NormalSHCullingFullPruningTrainer
+from reduced_3dgs import NormalOpacityResetFullReducedDensificationTrainer, NormalSHCullingOpacityResetFullReducedDensificationTrainer
+from reduced_3dgs import NormalCameraSHCullingOpacityResetDensificationTrainer
+from reduced_3dgs import NormalCameraFullPruningTrainer, NormalCameraSHCullingFullPruningTrainer
+from reduced_3dgs import NormalCameraOpacityResetFullReducedDensificationTrainer, NormalCameraSHCullingOpacityResetFullReducedDensificationTrainer
 
 backends = ["inria", "gsplat", "gsplat-2dgs"]
 
@@ -47,6 +53,16 @@ modes = {
     "camera-pruning-shculling": CameraSHCullingFullPruningTrainer,
     "camera-densify-pruning": CameraOpacityResetFullReducedDensificationTrainer,
     "camera-densify-pruning-shculling": CameraSHCullingOpacityResetFullReducedDensificationTrainer,
+    "normal-densify-shculling": NormalSHCullingOpacityResetDensificationTrainer,
+    "normal-pruning": NormalFullPruningTrainer,
+    "normal-pruning-shculling": NormalSHCullingFullPruningTrainer,
+    "normal-densify-pruning": NormalOpacityResetFullReducedDensificationTrainer,
+    "normal-densify-pruning-shculling": NormalSHCullingOpacityResetFullReducedDensificationTrainer,
+    "normal-camera-densify-shculling": NormalCameraSHCullingOpacityResetDensificationTrainer,
+    "normal-camera-pruning": NormalCameraFullPruningTrainer,
+    "normal-camera-pruning-shculling": NormalCameraSHCullingFullPruningTrainer,
+    "normal-camera-densify-pruning": NormalCameraOpacityResetFullReducedDensificationTrainer,
+    "normal-camera-densify-pruning-shculling": NormalCameraSHCullingOpacityResetFullReducedDensificationTrainer,
 }
 
 

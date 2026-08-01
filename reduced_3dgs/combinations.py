@@ -2,7 +2,7 @@ from functools import partial
 from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
-from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetTrainerWrapper, CameraTrainerWrapper, DepthTrainerWrapper
+from gaussian_splatting.trainer import OpacityResetDensificationTrainer, OpacityResetTrainerWrapper, CameraTrainerWrapper, DepthTrainerWrapper, NormalTrainerWrapper
 from gaussian_splatting.trainer.densifier import AbstractDensifier, NoopDensifier, DensificationTrainer
 from .shculling import VariableSHGaussianModel, CameraTrainableVariableSHGaussianModel, SHCullingTrainerWrapper, SHCullingTrainer
 from .pruning import PruningDensifierWrapper, ReducedDensificationDensifierWrapper
@@ -250,3 +250,68 @@ def CameraSHCullingOpacityResetFullReducedDensificationTrainer(
         model, dataset,
         **configs
     )
+
+
+# 2DGS normal consistency and depth distortion trainers
+
+NormalFullPruningTrainer = partial(NormalTrainerWrapper, FullPruningTrainer)
+NormalFullReducedDensificationTrainer = partial(NormalTrainerWrapper, FullReducedDensificationTrainer)
+NormalOpacityResetFullReducedDensificationTrainer = partial(NormalTrainerWrapper, OpacityResetFullReducedDensificationTrainer)
+
+NormalSHCullingOpacityResetDensificationTrainer = partial(NormalTrainerWrapper, SHCullingOpacityResetDensificationTrainer)
+NormalSHCullingFullPruningTrainer = partial(NormalTrainerWrapper, SHCullingFullPruningTrainer)
+NormalSHCullingFullReducedDensificationTrainer = partial(NormalTrainerWrapper, SHCullingFullReducedDensificationTrainer)
+NormalSHCullingOpacityResetFullReducedDensificationTrainer = partial(NormalTrainerWrapper, SHCullingOpacityResetFullReducedDensificationTrainer)
+
+NormalCameraSHCullingTrainer = partial(NormalTrainerWrapper, CameraSHCullingTrainer)
+NormalCameraFullPruningTrainer = partial(NormalTrainerWrapper, CameraFullPruningTrainer)
+NormalCameraFullReducedDensificationTrainer = partial(NormalTrainerWrapper, CameraFullReducedDensificationTrainer)
+NormalCameraOpacityResetFullReducedDensificationTrainer = partial(NormalTrainerWrapper, CameraOpacityResetFullReducedDensificationTrainer)
+
+NormalCameraSHCullingOpacityResetDensificationTrainer = partial(NormalTrainerWrapper, CameraSHCullingOpacityResetDensificationTrainer)
+NormalCameraSHCullingFullPruningTrainer = partial(NormalTrainerWrapper, CameraSHCullingFullPruningTrainer)
+NormalCameraSHCullingFullReducedDensificationTrainer = partial(NormalTrainerWrapper, CameraSHCullingFullReducedDensificationTrainer)
+NormalCameraSHCullingOpacityResetFullReducedDensificationTrainer = partial(NormalTrainerWrapper, CameraSHCullingOpacityResetFullReducedDensificationTrainer)
+
+
+__all__ = [
+    "FullPruningDensifierWrapper",
+    "FullPruningTrainerWrapper",
+    "BaseFullPruningTrainer",
+    "FullPruningTrainer",
+    "FullReducedDensificationDensifierWrapper",
+    "FullReducedDensificationTrainerWrapper",
+    "BaseFullReducedDensificationTrainer",
+    "FullReducedDensificationTrainer",
+    "OpacityResetFullReducedDensificationTrainer",
+
+    "SHCullingOpacityResetDensificationTrainer",
+    "SHCullingFullPruningTrainer",
+    "SHCullingFullReducedDensificationTrainer",
+    "SHCullingOpacityResetFullReducedDensificationTrainer",
+
+    "CameraSHCullingTrainer",
+    "CameraFullPruningTrainer",
+    "CameraFullReducedDensificationTrainer",
+    "CameraOpacityResetFullReducedDensificationTrainer",
+    "CameraSHCullingOpacityResetDensificationTrainer",
+    "CameraSHCullingFullPruningTrainer",
+    "CameraSHCullingFullReducedDensificationTrainer",
+    "CameraSHCullingOpacityResetFullReducedDensificationTrainer",
+
+    "NormalFullPruningTrainer",
+    "NormalFullReducedDensificationTrainer",
+    "NormalOpacityResetFullReducedDensificationTrainer",
+    "NormalSHCullingOpacityResetDensificationTrainer",
+    "NormalSHCullingFullPruningTrainer",
+    "NormalSHCullingFullReducedDensificationTrainer",
+    "NormalSHCullingOpacityResetFullReducedDensificationTrainer",
+    "NormalCameraSHCullingTrainer",
+    "NormalCameraFullPruningTrainer",
+    "NormalCameraFullReducedDensificationTrainer",
+    "NormalCameraOpacityResetFullReducedDensificationTrainer",
+    "NormalCameraSHCullingOpacityResetDensificationTrainer",
+    "NormalCameraSHCullingFullPruningTrainer",
+    "NormalCameraSHCullingFullReducedDensificationTrainer",
+    "NormalCameraSHCullingOpacityResetFullReducedDensificationTrainer",
+]
