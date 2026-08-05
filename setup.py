@@ -60,7 +60,7 @@ if os.name == 'nt':
 
 setup(
     name="reduced_3dgs",
-    version='1.15.0',
+    version='1.15.1',
     author='yindaheng98',
     author_email='yindaheng98@gmail.com',
     url='https://github.com/yindaheng98/reduced-3dgs',
@@ -97,7 +97,7 @@ setup(
         'build_ext': BuildExtension
     },
     install_requires=[
-        'gaussian-splatting >= 2.5.1',
+        'gaussian-splatting >= 2.9.0',
         'scikit-learn',
     ]
 )

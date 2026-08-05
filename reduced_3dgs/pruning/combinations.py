@@ -4,7 +4,7 @@ from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset, TrainableCameraDataset
 from gaussian_splatting.trainer import AbstractDensifier, DepthTrainerWrapper
-from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTrainer, SplitCloneDensifierWrapper
+from gaussian_splatting.trainer.densifier import NoopDensifier, DensificationTrainer, BoundedSplitCloneDensifierWrapper
 from .trainer import PruningDensifierWrapper, BasePruningTrainer
 
 
@@ -23,7 +23,7 @@ def ReducedDensificationDensifierWrapper(
         model: GaussianModel, dataset: CameraDataset,
         **configs) -> AbstractDensifier:
     return PruningDensifierWrapper(
-        partial(SplitCloneDensifierWrapper, base_densifier_constructor),
+        partial(BoundedSplitCloneDensifierWrapper, base_densifier_constructor),
         model, dataset,
         **configs
     )
