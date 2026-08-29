@@ -152,7 +152,7 @@ def BasePruningTrainer(
         dataset: CameraDataset,
         **configs):
     return PruningTrainerWrapper(
-        lambda model, dataset, **configs: NoopDensifier(model),
+        NoopDensifier,
         model, dataset,
         **configs
     )

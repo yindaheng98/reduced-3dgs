@@ -38,7 +38,7 @@ def BaseFullPruningTrainer(
         dataset: CameraDataset,
         **configs):
     return FullPruningTrainerWrapper(
-        lambda model, dataset, **configs: NoopDensifier(model),
+        NoopDensifier,
         model, dataset,
         **configs
     )
@@ -84,7 +84,7 @@ def BaseFullReducedDensificationTrainer(
         dataset: CameraDataset,
         **configs):
     return FullReducedDensificationTrainerWrapper(
-        lambda model, dataset, **configs: NoopDensifier(model),
+        NoopDensifier,
         model, dataset,
         **configs
     )

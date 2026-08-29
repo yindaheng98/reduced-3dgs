@@ -44,7 +44,7 @@ def BaseImportancePrunerInDensificationTrainer(
         dataset: CameraDataset,
         **configs):
     return ImportancePrunerInDensificationTrainerWrapper(
-        lambda model, dataset, **configs: NoopDensifier(model),
+        NoopDensifier,
         model, dataset,
         **configs
     )

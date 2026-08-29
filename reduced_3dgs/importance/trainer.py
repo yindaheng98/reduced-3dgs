@@ -282,7 +282,7 @@ def BaseImportancePruningTrainer(
         dataset: CameraDataset,
         **configs):
     return ImportancePruningTrainerWrapper(
-        lambda model, dataset, **configs: NoopDensifier(model),
+        NoopDensifier,
         model, dataset,
         **configs
     )
